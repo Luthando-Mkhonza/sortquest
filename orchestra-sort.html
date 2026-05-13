@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orchestra Sort — The Harmony Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #D4A843;
+    --gold-light: #F0C96A;
+    --gold-dark: #9A7320;
+    --stage: #0D0A1A;
+    --stage-mid: #1A1430;
+    --stage-light: #241D45;
+    --card-bg: #1E1836;
+    --card-border: rgba(212,168,67,0.25);
+    --text: #F5EDD8;
+    --text-muted: #9A8FA8;
+    --red: #E05252;
+    --green: #4CAF78;
+    --blue: #5B9BD5;
+    --purple: #9B72CF;
+    --teal: #3BB5A5;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--stage); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  .screen { display:none; min-height:100vh; }
+  .screen.active { display:flex; flex-direction:column; }
+
+  /* Stars */
+  .stars { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+  .star { position:absolute; background:#F0C96A; border-radius:50%; animation:twinkle 3s infinite alternate; }
+  @keyframes twinkle { 0%{opacity:.15;} 100%{opacity:.8;} }
+
+  /* Curtains */
+  .curtain-left { position:fixed;top:0;left:0;width:80px;height:100%;background:linear-gradient(to right,#3D0A0A,transparent);pointer-events:none;z-index:0; }
+  .curtain-right { position:fixed;top:0;right:0;width:80px;height:100%;background:linear-gradient(to left,#3D0A0A,transparent);pointer-events:none;z-index:0; }
+
+  /* HOME */
+  #home { align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 30%,#2A1F4A,var(--stage) 70%); position:relative; }
+  .home-content { position:relative;z-index:1;text-align:center;padding:2rem;max-width:640px; }
+  .note-deco { font-size:3.5rem; margin-bottom:1rem; animation:float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+  .home-title { font-family:'Playfair Display',serif; font-size:clamp(2.6rem,6vw,4.8rem); font-weight:900; color:var(--gold); line-height:1.1; text-shadow:0 0 60px rgba(212,168,67,0.35); margin-bottom:.4rem; }
+  .home-sub { font-size:.95rem; color:var(--text-muted); letter-spacing:.2em; text-transform:uppercase; margin-bottom:1.5rem; }
+  .home-desc { color:var(--text-muted); max-width:420px; margin:0 auto 2rem; line-height:1.7; font-size:.9rem; }
+  .btn-row { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
+  .btn-primary { background:var(--gold); color:#0D0A1A; border:none; border-radius:8px; padding:.85rem 2rem; font-family:'DM Sans',sans-serif; font-size:.95rem; font-weight:500; cursor:pointer; transition:.2s; }
+  .btn-primary:hover { background:var(--gold-light); transform:translateY(-2px); box-shadow:0 8px 24px rgba(212,168,67,.3); }
+  .btn-outline { background:transparent; color:var(--gold); border:1.5px solid var(--gold); border-radius:8px; padding:.85rem 2rem; font-family:'DM Sans',sans-serif; font-size:.95rem; cursor:pointer; transition:.2s; }
+  .btn-outline:hover { background:rgba(212,168,67,.1); transform:translateY(-2px); }
+
+  /* MODE SELECT */
+  #mode-select { background:radial-gradient(ellipse at 50% 0%,#1A1430,var(--stage) 60%); align-items:center; padding:1.5rem 1rem 2rem; }
+  .page-header { text-align:center; margin-bottom:2rem; width:100%; }
+  .page-header h2 { font-family:'Playfair Display',serif; font-size:1.8rem; color:var(--gold); }
+  .page-header p { color:var(--text-muted); margin-top:.3rem; font-size:.9rem; }
+  .back-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:.85rem; padding:.4rem .8rem; font-family:'DM Sans',sans-serif; display:flex; align-items:center; gap:.3rem; transition:.2s; margin-bottom:1rem; }
+  .back-btn:hover { color:var(--text); }
+  .mode-cards { display:flex; gap:1.5rem; flex-wrap:wrap; justify-content:center; width:100%; max-width:860px; }
+  .mode-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:2rem; flex:1; min-width:260px; max-width:380px; position:relative; overflow:hidden; transition:.3s; }
+  .mode-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(to right,transparent,var(--gold),transparent); opacity:0; transition:.3s; }
+  .mode-card:hover { transform:translateY(-4px); border-color:rgba(212,168,67,.5); }
+  .mode-card:hover::before { opacity:1; }
+  .mode-icon { font-size:2.8rem; margin-bottom:.8rem; }
+  .mode-card h3 { font-family:'Playfair Display',serif; font-size:1.5rem; color:var(--gold); margin-bottom:.4rem; }
+  .mode-card p { color:var(--text-muted); font-size:.85rem; line-height:1.6; margin-bottom:1.2rem; }
+  .diff-pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+  .diff-pill { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:.35rem .9rem; font-size:.78rem; color:var(--text-muted); cursor:pointer; transition:.2s; }
+  .diff-pill:hover, .diff-pill.sel { background:var(--gold); color:#0D0A1A; border-color:var(--gold); font-weight:500; }
+  .start-btn { width:100%; background:var(--gold); color:#0D0A1A; border:none; border-radius:8px; padding:.75rem; font-size:.95rem; font-weight:500; cursor:pointer; transition:.2s; font-family:'DM Sans',sans-serif; }
+  .start-btn:hover { background:var(--gold-light); }
+
+  /* GAME */
+  #game { background:radial-gradient(ellipse at 50% 80%,#1A1430,var(--stage) 70%); }
+  .top-bar { display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.5rem; border-bottom:1px solid rgba(212,168,67,.15); background:rgba(13,10,26,.85); backdrop-filter:blur(10px); position:sticky; top:0; z-index:100; gap:1rem; flex-wrap:wrap; }
+  .top-left { display:flex; align-items:center; gap:.8rem; }
+  .algo-badge { background:var(--gold); color:#0D0A1A; border-radius:6px; padding:.25rem .7rem; font-size:.75rem; font-weight:500; letter-spacing:.05em; font-family:'DM Mono',monospace; }
+  .diff-badge { background:rgba(255,255,255,.08); color:var(--text-muted); border-radius:6px; padding:.25rem .6rem; font-size:.7rem; font-family:'DM Mono',monospace; }
+  .stats { display:flex; gap:1.2rem; }
+  .stat { display:flex; flex-direction:column; align-items:center; }
+  .stat-lbl { font-size:.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; }
+  .stat-val { font-family:'DM Mono',monospace; font-size:1rem; font-weight:500; color:var(--gold); }
+
+  .stage-area { flex:1; display:flex; flex-direction:column; align-items:center; padding:1.5rem 1rem; }
+  .stage-lbl { font-family:'Playfair Display',serif; font-size:.8rem; color:var(--text-muted); letter-spacing:.25em; text-transform:uppercase; margin-bottom:1.2rem; }
+  .orchestra { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; background:rgba(255,255,255,.02); border:1px solid rgba(212,168,67,.1); border-radius:16px; padding:1.5rem; min-height:140px; width:100%; max-width:900px; }
+  .card { display:flex; flex-direction:column; align-items:center; justify-content:center; width:78px; height:96px; border-radius:12px; border:1.5px solid rgba(255,255,255,.1); background:var(--card-bg); cursor:pointer; transition:all .22s; user-select:none; animation:card-in .3s ease both; }
+  .card .ci { font-size:1.7rem; line-height:1; margin-bottom:3px; }
+  .card .cn { font-size:.55rem; color:var(--text-muted); letter-spacing:.05em; text-transform:uppercase; }
+  .card .cp { font-family:'DM Mono',monospace; font-size:1rem; font-weight:500; color:var(--text); margin-top:2px; }
+  @keyframes card-in { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+  .card.comparing { border-color:var(--blue); background:rgba(91,155,213,.15); box-shadow:0 0 18px rgba(91,155,213,.25); }
+  .card.swapping { border-color:var(--gold); background:rgba(212,168,67,.15); box-shadow:0 0 18px rgba(212,168,67,.3); animation:swap-pulse .45s; }
+  .card.pivot { border-color:var(--purple); background:rgba(155,114,207,.2); box-shadow:0 0 18px rgba(155,114,207,.35); }
+  .card.left-part { border-color:var(--teal); background:rgba(59,181,165,.12); }
+  .card.right-part { border-color:var(--red); background:rgba(224,82,82,.12); }
+  .card.sorted { border-color:var(--green) !important; background:rgba(76,175,120,.14) !important; }
+  .card.selected { border-color:var(--gold); background:rgba(212,168,67,.2); transform:translateY(-4px); box-shadow:0 8px 20px rgba(212,168,67,.4); }
+  @keyframes swap-pulse { 0%{transform:scale(1);} 50%{transform:scale(1.07);} 100%{transform:scale(1);} }
+
+  .prog-wrap { width:100%; max-width:900px; margin-top:1rem; }
+  .prog-labels { display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-muted); margin-bottom:.35rem; }
+  .prog-bar { height:4px; background:rgba(255,255,255,.1); border-radius:2px; overflow:hidden; }
+  .prog-fill { height:100%; background:linear-gradient(to right,var(--gold-dark),var(--gold)); transition:width .4s ease; }
+
+  .ctrl-panel { width:100%; max-width:900px; margin-top:1rem; background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px; padding:1.2rem; }
+  .ctrl-title { font-size:.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.15em; margin-bottom:.8rem; }
+  .ctrl-btns { display:flex; gap:.7rem; flex-wrap:wrap; }
+  .cbtn { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); color:var(--text); border-radius:8px; padding:.6rem 1.1rem; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:.85rem; transition:.2s; }
+  .cbtn:hover:not(:disabled) { background:rgba(212,168,67,.15); border-color:var(--gold); color:var(--gold); }
+  .cbtn:disabled { opacity:.3; cursor:not-allowed; }
+  .cbtn.pri { background:var(--gold); color:#0D0A1A; border-color:var(--gold); font-weight:500; }
+  .cbtn.pri:hover:not(:disabled) { background:var(--gold-light); }
+  .msg-box { margin-top:.8rem; padding:.7rem .9rem; background:rgba(255,255,255,.03); border-left:3px solid var(--gold); border-radius:0 8px 8px 0; font-family:'DM Mono',monospace; font-size:.78rem; line-height:1.5; color:var(--text-muted); min-height:40px; }
+
+  .edu-panel { width:100%; max-width:900px; margin-top:.9rem; display:grid; grid-template-columns:1fr 1fr; gap:.9rem; }
+  .edu-card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:.9rem; }
+  .edu-card h4 { font-size:.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:.4rem; }
+  .edu-card p { font-family:'DM Mono',monospace; font-size:.77rem; color:var(--text); line-height:1.55; }
+
+  /* HOW IT WORKS */
+  #how-screen { background:radial-gradient(ellipse at 50% 0%,#1A1430,var(--stage) 60%); align-items:center; padding:1.5rem 1rem 2.5rem; }
+  .how-wrap { max-width:700px; width:100%; }
+  .how-wrap h2 { font-family:'Playfair Display',serif; color:var(--gold); font-size:1.9rem; margin-bottom:1.8rem; text-align:center; }
+  .how-sec { margin-bottom:1.8rem; }
+  .how-sec h3 { color:var(--gold-light); font-size:1rem; margin-bottom:.6rem; }
+  .how-sec p, .how-sec li { color:var(--text-muted); line-height:1.7; font-size:.88rem; }
+  .how-sec ul { padding-left:1.1rem; }
+  .how-sec li { margin-bottom:.3rem; }
+  table.htable { width:100%; border-collapse:collapse; margin-top:.6rem; }
+  table.htable th, table.htable td { padding:.5rem .8rem; text-align:left; border-bottom:1px solid rgba(255,255,255,.07); font-size:.82rem; }
+  table.htable th { color:var(--gold); font-weight:500; }
+  table.htable td { color:var(--text-muted); font-family:'DM Mono',monospace; }
+  .g { color:var(--green); } .r { color:var(--red); }
+  .inst-chips { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.6rem; }
+  .ichip { display:flex; align-items:center; gap:.35rem; background:rgba(255,255,255,.05); border-radius:20px; padding:.28rem .75rem; font-size:.78rem; color:var(--text-muted); }
+
+  /* WIN */
+  #win-screen { background:radial-gradient(ellipse at 50% 40%,#2A1F4A,var(--stage) 70%); align-items:center; justify-content:center; text-align:center; padding:2rem; }
+  .win-box { max-width:540px; }
+  .win-icon { font-size:5rem; margin-bottom:1rem; animation:float 2s ease-in-out infinite; }
+  .win-title { font-family:'Playfair Display',serif; font-size:2.8rem; color:var(--gold); margin-bottom:.4rem; }
+  .win-sub { color:var(--text-muted); margin-bottom:2rem; font-size:.95rem; }
+  .score-grid { background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:1.5rem; margin-bottom:2rem; display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+  .sg-item .sg-lbl { font-size:.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:.25rem; }
+  .sg-item .sg-val { font-family:'DM Mono',monospace; font-size:1.5rem; font-weight:500; color:var(--gold); }
+  .win-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+
+  /* Particles */
+  .note-p { position:fixed; pointer-events:none; z-index:999; font-size:1.4rem; animation:nfly 2s ease-out forwards; }
+  @keyframes nfly { 0%{opacity:1;transform:translateY(0) rotate(0deg);} 100%{opacity:0;transform:translateY(-180px) rotate(40deg);} }
+
+  @media(max-width:600px) {
+    .edu-panel { grid-template-columns:1fr; }
+    .score-grid { grid-template-columns:1fr 1fr; }
+    .stats { gap:.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="curtain-left"></div>
+<div class="curtain-right"></div>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <div class="home-content">
+    <div class="note-deco">🎼</div>
+    <h1 class="home-title">Orchestra Sort</h1>
+    <p class="home-sub">The Harmony Challenge</p>
+    <p class="home-desc">The concert starts in minutes and the musicians are out of order! Use Bubble Sort or Quick Sort to arrange them by pitch and restore harmony before the curtain rises.</p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goTo('mode-select')">🎮 Play Game</button>
+      <button class="btn-outline" onclick="goTo('how-screen')">📖 How It Works</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODE SELECT -->
+<div class="screen" id="mode-select">
+  <div style="padding:.8rem 1.5rem .2rem;">
+    <button class="back-btn" onclick="goTo('home')">← Back</button>
+  </div>
+  <div class="page-header">
+    <h2>🎵 Choose Your Algorithm</h2>
+    <p>Select a sorting method and difficulty level</p>
+  </div>
+  <div class="mode-cards">
+    <div class="mode-card">
+      <div class="mode-icon">🎻</div>
+      <h3>Bubble Sort</h3>
+      <p>The slow rehearsal. Compare adjacent musicians and swap them step by step until the whole orchestra is in order.</p>
+      <div class="diff-pills">
+        <span class="diff-pill sel" data-algo="bubble" data-diff="easy" onclick="pickDiff(this)">Easy (5)</span>
+        <span class="diff-pill" data-algo="bubble" data-diff="medium" onclick="pickDiff(this)">Medium (8)</span>
+        <span class="diff-pill" data-algo="bubble" data-diff="hard" onclick="pickDiff(this)">Hard (12)</span>
+      </div>
+      <button class="start-btn" onclick="startGame('bubble')">Start Bubble Sort →</button>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon">🎷</div>
+      <h3>Quick Sort</h3>
+      <p>The strategic conductor. Choose a pivot musician, partition the orchestra into sections, and conquer recursively!</p>
+      <div class="diff-pills">
+        <span class="diff-pill sel" data-algo="quick" data-diff="easy" onclick="pickDiff(this)">Easy (6)</span>
+        <span class="diff-pill" data-algo="quick" data-diff="medium" onclick="pickDiff(this)">Medium (10)</span>
+        <span class="diff-pill" data-algo="quick" data-diff="hard" onclick="pickDiff(this)">Hard (14)</span>
+      </div>
+      <button class="start-btn" onclick="startGame('quick')">Start Quick Sort →</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="screen" id="how-screen">
+  <div class="how-wrap" style="margin:0 auto;padding:0 1rem;">
+    <div style="padding:.8rem 0 .2rem;">
+      <button class="back-btn" onclick="goTo('home')">← Back</button>
+    </div>
+    <h2>📖 How It Works</h2>
+
+    <div class="how-sec">
+      <h3>🎼 The Orchestra</h3>
+      <p>Each musician card shows their instrument and a pitch number (10–99). Lower numbers = lower pitch. Your goal: arrange all musicians from lowest to highest pitch so the orchestra can play in harmony.</p>
+      <div class="inst-chips" id="inst-chips"></div>
+    </div>
+
+    <div class="how-sec">
+      <h3>🎻 Bubble Sort — Step by Step</h3>
+      <ul>
+        <li>Click <strong>Compare</strong> to highlight two adjacent musicians</li>
+        <li>If the left pitch is greater, click <strong>Swap</strong> to exchange them</li>
+        <li>Continue until the end of the unsorted section (one pass)</li>
+        <li>Click <strong>Next Pass</strong> to start a new round from the beginning</li>
+        <li>Sorted musicians glow green — once all are green, you win!</li>
+        <li>Use <strong>Auto-Run</strong> to watch the algorithm execute automatically</li>
+      </ul>
+    </div>
+
+    <div class="how-sec">
+      <h3>🎷 Quick Sort — Step by Step</h3>
+      <ul>
+        <li>Click <strong>Select Pivot</strong> to enter pivot-selection mode</li>
+        <li>Click any highlighted musician to set them as the pivot (glows purple)</li>
+        <li>Click <strong>Partition</strong> to preview: teal = smaller than pivot, red = larger</li>
+        <li>Click <strong>Apply</strong> to physically rearrange — the pivot lands in its final sorted spot</li>
+        <li>Repeat for the remaining unsorted sub-sections until all are sorted!</li>
+      </ul>
+    </div>
+
+    <div class="how-sec">
+      <h3>📊 Algorithm Complexity</h3>
+      <table class="htable">
+        <tr><th>Algorithm</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th></tr>
+        <tr><td>Bubble Sort</td><td class="g">O(n)</td><td class="r">O(n²)</td><td class="r">O(n²)</td><td>O(1)</td></tr>
+        <tr><td>Quick Sort</td><td class="g">O(n log n)</td><td class="g">O(n log n)</td><td class="r">O(n²)</td><td>O(log n)</td></tr>
+      </table>
+    </div>
+
+    <div class="how-sec">
+      <h3>⭐ Scoring System</h3>
+      <table class="htable">
+        <tr><th>Action</th><th>Points</th></tr>
+        <tr><td>Correct comparison</td><td class="g">+5</td></tr>
+        <tr><td>Necessary swap / partition applied</td><td class="g">+10</td></tr>
+        <tr><td>Correct pivot selection</td><td class="g">+15</td></tr>
+        <tr><td>Speed bonus (100 − seconds elapsed)</td><td class="g">+up to 100</td></tr>
+        <tr><td>Unnecessary swap attempt</td><td class="r">−5</td></tr>
+      </table>
+    </div>
+
+    <div style="text-align:center;margin-top:2rem;padding-bottom:1rem;">
+      <button class="btn-primary" onclick="goTo('mode-select')">🎮 Play Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game">
+  <div class="top-bar">
+    <div class="top-left">
+      <button class="back-btn" style="margin:0;" onclick="quitGame()">← Quit</button>
+      <span class="algo-badge" id="g-algo-lbl">BUBBLE SORT</span>
+      <span class="diff-badge" id="g-diff-lbl">EASY</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-lbl">Time</span><span class="stat-val" id="g-time">0:00</span></div>
+      <div class="stat"><span class="stat-lbl">Moves</span><span class="stat-val" id="g-moves">0</span></div>
+      <div class="stat"><span class="stat-lbl">Score</span><span class="stat-val" id="g-score">0</span></div>
+    </div>
+  </div>
+
+  <div class="stage-area">
+    <p class="stage-lbl">🎭 Concert Stage — Sort by Pitch: Low → High</p>
+    <div class="orchestra" id="orch"></div>
+
+    <div class="prog-wrap">
+      <div class="prog-labels"><span>Sorting Progress</span><span id="prog-pct">0%</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="ctrl-panel">
+      <div class="ctrl-title" id="ctrl-title">Controls</div>
+      <div class="ctrl-btns" id="ctrl-btns"></div>
+      <div class="msg-box" id="msg">Click a control button to begin sorting the orchestra...</div>
+    </div>
+
+    <div class="edu-panel">
+      <div class="edu-card"><h4>Algorithm Insight</h4><p id="edu-algo">—</p></div>
+      <div class="edu-card"><h4>Current Operation</h4><p id="edu-op">Awaiting first move...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div class="screen" id="win-screen">
+  <div class="win-box">
+    <div class="win-icon">🏆</div>
+    <h1 class="win-title">Harmony Restored!</h1>
+    <p class="win-sub">The orchestra is perfectly sorted — the concert can begin!</p>
+    <div class="score-grid">
+      <div class="sg-item"><span class="sg-lbl">Final Score</span><span class="sg-val" id="w-score">0</span></div>
+      <div class="sg-item"><span class="sg-lbl">Time</span><span class="sg-val" id="w-time">0:00</span></div>
+      <div class="sg-item"><span class="sg-lbl">Moves</span><span class="sg-val" id="w-moves">0</span></div>
+      <div class="sg-item"><span class="sg-lbl">Algorithm</span><span class="sg-val" id="w-algo" style="font-size:.9rem;">—</span></div>
+      <div class="sg-item"><span class="sg-lbl">Difficulty</span><span class="sg-val" id="w-diff" style="font-size:.9rem;">—</span></div>
+      <div class="sg-item"><span class="sg-lbl">Speed Bonus</span><span class="sg-val" id="w-bonus">+0</span></div>
+    </div>
+    <div class="win-btns">
+      <button class="btn-primary" onclick="goTo('mode-select')">🎵 Play Again</button>
+      <button class="btn-outline" onclick="goTo('home')">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Instruments ──────────────────────────────────────────────
+const INSTS = [
+  {name:'Piccolo',icon:'🎶'},{name:'Flute',icon:'🪗'},{name:'Oboe',icon:'🎵'},
+  {name:'Clarinet',icon:'🎼'},{name:'Bassoon',icon:'🎸'},{name:'Horn',icon:'📯'},
+  {name:'Trumpet',icon:'🎺'},{name:'Trombone',icon:'🔔'},{name:'Tuba',icon:'🥁'},
+  {name:'Violin',icon:'🎻'},{name:'Viola',icon:'🪘'},{name:'Cello',icon:'🎸'},
+  {name:'Bass',icon:'🎸'},{name:'Harp',icon:'🪕'},
+];
+
+// ── Stars ─────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=Math.random()*2.5+.5;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${2+Math.random()*3}s;`;
+    c.appendChild(s);
+  }
+})();
+
+// ── Instrument chips in How ────────────────────────────────────
+(function(){
+  const c=document.getElementById('inst-chips');
+  INSTS.slice(0,8).forEach(i=>{
+    const d=document.createElement('div');d.className='ichip';d.innerHTML=`${i.icon} ${i.name}`;c.appendChild(d);
+  });
+})();
+
+// ── Screen Navigation ─────────────────────────────────────────
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── Difficulty Selection ──────────────────────────────────────
+const selDiff={bubble:'easy',quick:'easy'};
+function pickDiff(el){
+  const a=el.dataset.algo,d=el.dataset.diff;
+  selDiff[a]=d;
+  document.querySelectorAll(`.diff-pill[data-algo="${a}"]`).forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+}
+const SIZES={bubble:{easy:5,medium:8,hard:12},quick:{easy:6,medium:10,hard:14}};
+
+// ── Game State ────────────────────────────────────────────────
+let G={};
+
+function mkArr(size){
+  const pitches=new Set();
+  while(pitches.size<size)pitches.add(Math.floor(Math.random()*85)+12);
+  const arr=[...pitches];
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  const insts=[...INSTS].sort(()=>Math.random()-.5).slice(0,size);
+  return arr.map((p,i)=>({pitch:p,...insts[i]}));
+}
+
+// ── Start Game ────────────────────────────────────────────────
+function startGame(algo){
+  const diff=selDiff[algo];
+  const size=SIZES[algo][diff];
+  G={
+    algo,diff,
+    arr:mkArr(size),
+    score:0,moves:0,seconds:0,
+    phase:'idle',
+    bI:0,bPass:0,
+    sorted:new Set(),
+    pivotIdx:-1,
+    ranges:[],
+    curRange:null,
+    pendingPart:null,
+    autoIv:null,
+  };
+  clearInterval(G.timerIv);
+  G.timerIv=setInterval(()=>{G.seconds++;document.getElementById('g-time').textContent=fmt(G.seconds);},1000);
+
+  document.getElementById('g-algo-lbl').textContent=algo==='bubble'?'BUBBLE SORT':'QUICK SORT';
+  document.getElementById('g-diff-lbl').textContent=diff.toUpperCase();
+  document.getElementById('edu-algo').textContent=algo==='bubble'
+    ?'Bubble Sort: compares adjacent pairs and bubbles largest to end each pass. Best O(n), Worst O(n²).'
+    :'Quick Sort: picks a pivot, partitions into smaller/larger halves, recurses. Average O(n log n), Worst O(n²).';
+
+  buildCtrls();
+  render();
+  updStats();
+  updProg();
+  msg('🎼 Welcome, Conductor! Use the controls to sort by pitch (low → high). Sorted musicians glow green.');
+  goTo('game');
+}
+
+function fmt(s){return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+function updStats(){
+  document.getElementById('g-score').textContent=G.score;
+  document.getElementById('g-moves').textContent=G.moves;
+}
+function msg(html){document.getElementById('msg').innerHTML=html;}
+function eduOp(t){document.getElementById('edu-op').textContent=t;}
+
+// ── Render ────────────────────────────────────────────────────
+function render(){
+  const stage=document.getElementById('orch');stage.innerHTML='';
+  G.arr.forEach((item,idx)=>{
+    const d=document.createElement('div');
+    d.className='card';d.dataset.idx=idx;
+    d.style.animationDelay=`${idx*.05}s`;
+    d.innerHTML=`<span class="ci">${item.icon}</span><span class="cn">${item.name}</span><span class="cp">${item.pitch}</span>`;
+    d.addEventListener('click',()=>onCard(idx));
+    stage.appendChild(d);
+  });
+  applyClasses();
+}
+
+function gc(i){return document.querySelector(`.card[data-idx="${i}"]`);}
+
+function clearC(){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('comparing','swapping','pivot','left-part','right-part','selected'));
+}
+
+function applyClasses(){
+  clearC();
+  G.sorted.forEach(i=>{const c=gc(i);if(c)c.classList.add('sorted');});
+}
+
+function updProg(){
+  const n=G.arr.length,s=G.sorted.size;
+  const pct=Math.round((s/n)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+}
+
+// ── Build Controls ────────────────────────────────────────────
+function buildCtrls(){
+  if(G.algo==='bubble')buildBubble();
+  else buildQuick();
+}
+
+// ============================================================
+// BUBBLE SORT
+// ============================================================
+function buildBubble(){
+  document.getElementById('ctrl-title').textContent='Bubble Sort Controls';
+  document.getElementById('ctrl-btns').innerHTML=`
+    <button class="cbtn pri" id="b-compare" onclick="bCompare()">🔍 Compare</button>
+    <button class="cbtn" id="b-swap" onclick="bSwap()" disabled>⇄ Swap</button>
+    <button class="cbtn" id="b-next" onclick="bNextPass()" disabled>↻ Next Pass</button>
+    <button class="cbtn" id="b-auto" onclick="bAuto()">▶ Auto-Run</button>
+  `;
+}
+
+function bCompare(){
+  const n=G.arr.length;
+  const limit=n-1-G.bPass;
+  if(G.bI>=limit){
+    G.sorted.add(limit);
+    G.bPass++;G.bI=0;
+    if(G.bPass>=n-1||bDone()){finishBubble();return;}
+    applyClasses();updProg();
+    document.getElementById('b-next').disabled=false;
+    document.getElementById('b-compare').disabled=true;
+    document.getElementById('b-swap').disabled=true;
+    msg(`✅ Pass ${G.bPass} complete! Rightmost unsorted element is now in place. Click "Next Pass" to continue.`);
+    eduOp(`Pass ${G.bPass} done. ${G.sorted.size}/${n} elements in final position.`);
+    G.score+=5;G.moves++;updStats();return;
+  }
+  applyClasses();
+  const i=G.bI,c1=gc(i),c2=gc(i+1);
+  if(c1)c1.classList.add('comparing');if(c2)c2.classList.add('comparing');
+  G.score+=5;G.moves++;updStats();
+  const need=G.arr[i].pitch>G.arr[i+1].pitch;
+  document.getElementById('b-swap').disabled=!need;
+  const swapHint=need?'🔄 Out of order! Click <strong>Swap</strong>.':'✅ In order. Click <strong>Compare</strong> again to advance.';
+  msg(`🔍 Comparing <strong>${G.arr[i].name} (${G.arr[i].pitch})</strong> vs <strong>${G.arr[i+1].name} (${G.arr[i+1].pitch})</strong> — ${swapHint}`);
+  eduOp(`Comparing index ${i} (${G.arr[i].pitch}) with index ${i+1} (${G.arr[i+1].pitch}).`);
+  if(!need)G.bI++;
+}
+
+function bSwap(){
+  const i=G.bI;
+  if(G.arr[i].pitch<=G.arr[i+1].pitch){msg('❌ No swap needed — these are already in order!');G.score-=5;updStats();return;}
+  [G.arr[i],G.arr[i+1]]=[G.arr[i+1],G.arr[i]];
+  G.score+=10;G.moves++;G.bI++;
+  applyClasses();
+  const c1=gc(i),c2=gc(i+1);
+  if(c1)c1.classList.add('swapping');if(c2)c2.classList.add('swapping');
+  setTimeout(()=>{render();updProg();},420);
+  msg(`⇄ Swapped! Now ${G.arr[i].pitch} is left of ${G.arr[i+1].pitch}.`);
+  eduOp(`Swapped elements at positions ${i} and ${i+1}.`);
+  document.getElementById('b-swap').disabled=true;
+  updStats();
+}
+
+function bNextPass(){
+  document.getElementById('b-compare').disabled=false;
+  document.getElementById('b-next').disabled=true;
+  applyClasses();
+  msg(`🎵 Pass ${G.bPass+1} starting! Click Compare to continue.`);
+}
+
+function bAuto(){
+  if(G.autoIv){clearInterval(G.autoIv);G.autoIv=null;document.getElementById('b-auto').textContent='▶ Auto-Run';return;}
+  document.getElementById('b-auto').textContent='⏸ Pause';
+  G.autoIv=setInterval(()=>{
+    if(G.phase==='done'){clearInterval(G.autoIv);return;}
+    const n=G.arr.length,limit=n-1-G.bPass;
+    if(G.bI>=limit){
+      G.sorted.add(limit);G.bPass++;G.bI=0;
+      if(G.bPass>=n-1||bDone()){clearInterval(G.autoIv);G.autoIv=null;finishBubble();return;}
+    }
+    const i=G.bI;
+    if(G.arr[i].pitch>G.arr[i+1].pitch){[G.arr[i],G.arr[i+1]]=[G.arr[i+1],G.arr[i]];G.score+=8;}
+    else G.score+=3;
+    G.bI++;G.moves++;render();updProg();updStats();
+  },500);
+}
+
+function bDone(){for(let i=0;i<G.arr.length-1;i++)if(G.arr[i].pitch>G.arr[i+1].pitch)return false;return true;}
+
+function finishBubble(){
+  clearInterval(G.autoIv);G.phase='done';
+  G.sorted=new Set([...Array(G.arr.length).keys()]);
+  render();updProg();
+  msg('🎶 Perfectly sorted! The orchestra is in harmony — the concert can begin!');
+  setTimeout(endGame,900);
+}
+
+// ============================================================
+// QUICK SORT
+// ============================================================
+function buildQuick(){
+  document.getElementById('ctrl-title').textContent='Quick Sort Controls';
+  document.getElementById('ctrl-btns').innerHTML=`
+    <button class="cbtn pri" id="q-pivot" onclick="qPivot()">🎯 Select Pivot</button>
+    <button class="cbtn" id="q-part" onclick="qPartition()" disabled>⚡ Partition</button>
+    <button class="cbtn" id="q-apply" onclick="qApply()" disabled>✅ Apply</button>
+    <button class="cbtn" id="q-auto" onclick="qAuto()">▶ Auto-Run</button>
+  `;
+}
+
+function qPivot(){
+  if(G.ranges.length===0&&!G.curRange)G.ranges=[[0,G.arr.length-1]];
+  if(!G.curRange&&G.ranges.length>0)G.curRange=G.ranges.shift();
+  if(!G.curRange){finishQuick();return;}
+  G.phase='pick';
+  applyClasses();
+  const[lo,hi]=G.curRange;
+  for(let i=lo;i<=hi;i++){const c=gc(i);if(c)c.classList.add('comparing');}
+  msg(`🎯 Click any musician between positions ${lo}–${hi} to set as the pivot for this partition.`);
+  eduOp(`Active sub-array: [${lo}, ${hi}]. Choose any element as pivot.`);
+  document.getElementById('q-part').disabled=true;
+  document.getElementById('q-apply').disabled=true;
+}
+
+function onCard(idx){
+  if(G.algo!=='quick'||G.phase!=='pick')return;
+  const[lo,hi]=G.curRange;
+  if(idx<lo||idx>hi){msg('⚠️ Please click within the highlighted (blue) range!');return;}
+  G.pivotIdx=idx;
+  applyClasses();
+  for(let i=lo;i<=hi;i++){if(i!==idx){const c=gc(i);if(c)c.classList.add('comparing');}}
+  const c=gc(idx);if(c)c.classList.add('pivot');
+  G.score+=15;G.moves++;updStats();
+  msg(`🟣 Pivot: <strong>${G.arr[idx].name} (pitch ${G.arr[idx].pitch})</strong>. Click <strong>Partition</strong> to split around it.`);
+  eduOp(`Pivot selected: pitch ${G.arr[idx].pitch} at index ${idx}.`);
+  document.getElementById('q-part').disabled=false;
+  document.getElementById('q-pivot').disabled=true;
+}
+
+function qPartition(){
+  const[lo,hi]=G.curRange;
+  const pv=G.arr[G.pivotIdx].pitch;
+  let t=[...G.arr];
+  [t[G.pivotIdx],t[hi]]=[t[hi],t[G.pivotIdx]];
+  let s=lo;
+  for(let i=lo;i<hi;i++){if(t[i].pitch<pv){[t[s],t[i]]=[t[i],t[s]];s++;}}
+  [t[s],t[hi]]=[t[hi],t[s]];
+  const fp=s;
+  G.pendingPart={newArr:t,fp,lo,hi};
+  applyClasses();
+  for(let i=lo;i<fp;i++){const c=gc(i);if(c)c.classList.add('left-part');}
+  const c=gc(fp);if(c)c.classList.add('pivot');
+  for(let i=fp+1;i<=hi;i++){const c=gc(i);if(c)c.classList.add('right-part');}
+  G.score+=10;G.moves++;updStats();
+  msg(`⚡ Preview: 🟢 Teal (pitch < ${pv}) | 🟣 Pivot at index ${fp} | 🔴 Red (pitch > ${pv}). Click <strong>Apply</strong> to commit.`);
+  eduOp(`Pivot (${pv}) → final position ${fp}. Left sub: [${lo},${fp-1}], Right sub: [${fp+1},${hi}].`);
+  document.getElementById('q-apply').disabled=false;
+  document.getElementById('q-part').disabled=true;
+}
+
+function qApply(){
+  if(!G.pendingPart)return;
+  const{newArr,fp,lo,hi}=G.pendingPart;
+  G.arr=newArr;G.sorted.add(fp);
+  if(fp-1>lo)G.ranges.push([lo,fp-1]);else if(fp-1===lo)G.sorted.add(lo);
+  if(fp+1<hi)G.ranges.push([fp+1,hi]);else if(fp+1===hi)G.sorted.add(hi);
+  G.curRange=null;G.pendingPart=null;G.pivotIdx=-1;G.phase='idle';
+  G.score+=10;G.moves++;updStats();
+  render();updProg();
+  if(qDone()){finishQuick();return;}
+  document.getElementById('q-pivot').disabled=false;
+  document.getElementById('q-part').disabled=true;
+  document.getElementById('q-apply').disabled=true;
+  msg(`✅ Pivot placed! ${G.ranges.length} sub-section(s) remaining. Click "Select Pivot" to continue.`);
+  eduOp(`${G.sorted.size} elements placed. ${G.ranges.length} sub-arrays left.`);
+}
+
+function qAuto(){
+  if(G.autoIv){clearInterval(G.autoIv);G.autoIv=null;document.getElementById('q-auto').textContent='▶ Auto-Run';return;}
+  document.getElementById('q-auto').textContent='⏸ Pause';
+  if(G.ranges.length===0&&!G.curRange)G.ranges=[[0,G.arr.length-1]];
+  G.autoIv=setInterval(()=>{
+    if(qDone()){clearInterval(G.autoIv);G.autoIv=null;finishQuick();return;}
+    if(!G.curRange&&G.ranges.length>0)G.curRange=G.ranges.shift();
+    if(!G.curRange){clearInterval(G.autoIv);G.autoIv=null;finishQuick();return;}
+    const[lo,hi]=G.curRange;
+    const pi=Math.floor((lo+hi)/2),pv=G.arr[pi].pitch;
+    let t=[...G.arr];
+    [t[pi],t[hi]]=[t[hi],t[pi]];
+    let s=lo;
+    for(let i=lo;i<hi;i++){if(t[i].pitch<pv){[t[s],t[i]]=[t[i],t[s]];s++;}}
+    [t[s],t[hi]]=[t[hi],t[s]];
+    const fp=s;G.arr=t;G.sorted.add(fp);
+    if(fp-1>lo)G.ranges.push([lo,fp-1]);else if(fp-1===lo)G.sorted.add(lo);
+    if(fp+1<hi)G.ranges.push([fp+1,hi]);else if(fp+1===hi)G.sorted.add(hi);
+    G.curRange=null;G.score+=8;G.moves++;
+    render();updProg();updStats();
+  },650);
+}
+
+function qDone(){
+  if(G.sorted.size>=G.arr.length)return true;
+  if(G.ranges.length===0&&!G.curRange){
+    for(let i=0;i<G.arr.length-1;i++)if(G.arr[i].pitch>G.arr[i+1].pitch)return false;
+    return true;
+  }
+  return false;
+}
+
+function finishQuick(){
+  clearInterval(G.autoIv);G.phase='done';
+  G.sorted=new Set([...Array(G.arr.length).keys()]);
+  render();updProg();
+  msg('🎶 The orchestra is perfectly sorted! Harmony achieved — bravo, Conductor!');
+  setTimeout(endGame,900);
+}
+
+// ── End Game ──────────────────────────────────────────────────
+function endGame(){
+  clearInterval(G.timerIv);
+  const bonus=Math.max(0,100-G.seconds);
+  G.score+=bonus;
+  spawnNotes();
+  document.getElementById('w-score').textContent=G.score;
+  document.getElementById('w-time').textContent=fmt(G.seconds);
+  document.getElementById('w-moves').textContent=G.moves;
+  document.getElementById('w-algo').textContent=G.algo==='bubble'?'Bubble':'Quick';
+  document.getElementById('w-diff').textContent=G.diff.charAt(0).toUpperCase()+G.diff.slice(1);
+  document.getElementById('w-bonus').textContent='+'+bonus;
+  setTimeout(()=>goTo('win-screen'),700);
+}
+
+function spawnNotes(){
+  const ns=['🎵','🎶','🎼','🎺','🎻','🎷'];
+  for(let i=0;i<22;i++){
+    setTimeout(()=>{
+      const n=document.createElement('div');n.className='note-p';
+      n.textContent=ns[Math.floor(Math.random()*ns.length)];
+      n.style.left=Math.random()*100+'vw';n.style.top=Math.random()*80+'vh';
+      n.style.animationDelay=Math.random()*.4+'s';
+      document.body.appendChild(n);
+      setTimeout(()=>n.remove(),2100);
+    },i*90);
+  }
+}
+
+function quitGame(){
+  if(confirm('Quit the current game?')){
+    clearInterval(G.timerIv);clearInterval(G.autoIv);
+    G={};goTo('mode-select');
+  }
+}
+</script>
+</body>
+</html>

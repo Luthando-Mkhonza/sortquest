@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Queue Cafe — SortQuest</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #2a2a3a;
+      --purple: #a855f7;
+      --gold: #f5c000;
+      --green: #00f5a0;
+      --red: #f5003c;
+      --blue: #00b4f5;
+      --text: #f0f0f0;
+      --muted: #888;
+      --orange: #f5a000
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh
+    }
+
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(168, 85, 247, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(168, 85, 247, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px
+    }
+
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--purple)
+    }
+
+    .logo span {
+      color: var(--text)
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center
+    }
+
+    .nav-links a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s
+    }
+
+    .nav-links a:hover {
+      color: var(--purple)
+    }
+
+    .nav-links a.cta {
+      border: 1px solid var(--purple);
+      color: var(--purple);
+      padding: 5px 12px;
+      border-radius: 2px
+    }
+
+    .nav-links a.cta:hover {
+      background: var(--purple);
+      color: var(--bg)
+    }
+
+    .main {
+      position: relative;
+      z-index: 1;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem
+    }
+
+    .tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--purple);
+      letter-spacing: 0.15em;
+      margin-bottom: 0.5rem
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--purple);
+      margin-bottom: 0.3rem
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 1.5rem
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem
+    }
+
+    .hud-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.85rem;
+      text-align: center
+    }
+
+    .hud-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 3px
+    }
+
+    .hud-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--purple)
+    }
+
+    .level-banner {
+      background: rgba(168, 85, 247, 0.07);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      border-radius: 4px;
+      padding: 0.7rem 1rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap
+    }
+
+    .level-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--purple);
+      font-weight: 700
+    }
+
+    .level-desc {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted)
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem
+    }
+
+    .cafe-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.5rem
+    }
+
+    .section-lbl {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      margin-bottom: 0.6rem
+    }
+
+    .queue-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 90px;
+      padding: 0.75rem;
+      background: rgba(168, 85, 247, 0.04);
+      border: 1px solid rgba(168, 85, 247, 0.15);
+      border-radius: 3px;
+      margin-bottom: 1.25rem;
+      overflow-x: auto;
+      flex-wrap: nowrap
+    }
+
+    .q-empty {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      width: 100%;
+      text-align: center
+    }
+
+    .q-arrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      padding: 0 2px;
+      flex-shrink: 0
+    }
+
+    .customer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 62px;
+      max-width: 62px;
+      position: relative;
+      animation: popIn 0.3s ease;
+      flex-shrink: 0
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: scale(0.6)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    .c-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      width: 100%
+    }
+
+    .c-btn:hover .c-face {
+      transform: scale(1.08);
+      filter: brightness(1.15)
+    }
+
+    .c-btn:disabled .c-face {
+      filter: grayscale(0.5);
+      cursor: not-allowed
+    }
+
+    .c-btn:disabled {
+      cursor: not-allowed
+    }
+
+    .c-face {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+      position: relative;
+      background: rgba(168, 85, 247, 0.06)
+    }
+
+    .c-face.vip {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(245, 192, 0, 0.35)
+    }
+
+    .c-face.wrong {
+      border-color: var(--red);
+      animation: shake 0.35s ease
+    }
+
+    .c-face.correct {
+      border-color: var(--green);
+      animation: pulse 0.4s ease
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0)
+      }
+
+      25% {
+        transform: translateX(-5px)
+      }
+
+      75% {
+        transform: translateX(5px)
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.15)
+      }
+
+      100% {
+        transform: scale(1)
+      }
+    }
+
+    .vip-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--gold);
+      color: #000;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.42rem;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-weight: 700
+    }
+
+    .c-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.52rem;
+      color: var(--muted);
+      text-align: center;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .c-patience {
+      width: 52px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 1px
+    }
+
+    .c-patience-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s linear, background 1s linear
+    }
+
+    .c-pos {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.48rem;
+      color: var(--purple);
+      font-weight: 700
+    }
+
+    .counter-zone {
+      min-height: 80px;
+      background: rgba(0, 180, 245, 0.04);
+      border: 1px dashed rgba(0, 180, 245, 0.25);
+      border-radius: 3px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem
+    }
+
+    .counter-empty {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      width: 100%;
+      text-align: center
+    }
+
+    .counter-customer {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%
+    }
+
+    .counter-face {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      border: 2px solid var(--blue);
+      background: rgba(0, 180, 245, 0.08);
+      position: relative;
+      flex-shrink: 0
+    }
+
+    .counter-info {
+      flex: 1
+    }
+
+    .counter-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-weight: 700
+    }
+
+    .counter-order {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--purple);
+      margin-bottom: 6px
+    }
+
+    .counter-actions {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 1rem;
+      border-radius: 3px;
+      border: 1px solid;
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.15s
+    }
+
+    .btn-p {
+      border-color: var(--purple);
+      color: var(--purple)
+    }
+
+    .btn-p:hover:not(:disabled) {
+      background: var(--purple);
+      color: var(--bg)
+    }
+
+    .btn-g {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .btn-g:hover:not(:disabled) {
+      background: var(--green);
+      color: var(--bg)
+    }
+
+    .btn-r {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .btn-r:hover:not(:disabled) {
+      background: var(--red);
+      color: var(--bg)
+    }
+
+    .btn-m {
+      border-color: var(--border);
+      color: var(--muted)
+    }
+
+    .btn-m:hover {
+      border-color: var(--muted);
+      color: var(--text)
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed
+    }
+
+    .instruction {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      padding: 0.6rem 0.9rem;
+      border: 1px dashed var(--border);
+      border-radius: 3px;
+      margin-bottom: 1.25rem;
+      text-align: center
+    }
+
+    .instruction strong {
+      color: var(--purple)
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem
+    }
+
+    .msg-box {
+      background: rgba(168, 85, 247, 0.06);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 4px;
+      padding: 0.9rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--purple);
+      min-height: 56px;
+      line-height: 1.55
+    }
+
+    .viz-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.1rem
+    }
+
+    .viz-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 0.6rem
+    }
+
+    .viz-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      transition: all 0.3s
+    }
+
+    .viz-row.front {
+      border-color: var(--purple);
+      background: rgba(168, 85, 247, 0.08)
+    }
+
+    .viz-row.vip-v {
+      border-color: var(--gold);
+      background: rgba(245, 192, 0, 0.05)
+    }
+
+    .viz-idx {
+      color: var(--muted);
+      min-width: 22px
+    }
+
+    .viz-em {
+      font-size: 0.95rem
+    }
+
+    .viz-nm {
+      color: var(--text);
+      flex: 1
+    }
+
+    .viz-tag {
+      font-size: 0.5rem;
+      padding: 1px 5px;
+      border-radius: 2px
+    }
+
+    .vt-vip {
+      background: rgba(245, 192, 0, 0.2);
+      color: var(--gold)
+    }
+
+    .vt-reg {
+      background: rgba(168, 85, 247, 0.15);
+      color: var(--purple)
+    }
+
+    .log-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.1rem;
+      max-height: 170px;
+      overflow-y: auto
+    }
+
+    .log-row {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      justify-content: space-between
+    }
+
+    .log-row:last-child {
+      border-bottom: none
+    }
+
+    .lg {
+      color: var(--green)
+    }
+
+    .lb {
+      color: var(--red)
+    }
+
+    .lv {
+      color: var(--gold)
+    }
+
+    .lm {
+      color: var(--muted)
+    }
+
+    .concept-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.25rem;
+      margin-top: 1.25rem
+    }
+
+    .concept-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.7rem
+    }
+
+    .concept-text {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.7
+    }
+
+    .concept-code {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      background: rgba(168, 85, 247, 0.07);
+      border: 1px solid rgba(168, 85, 247, 0.18);
+      border-radius: 3px;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      color: var(--purple);
+      line-height: 1.9
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.92);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .overlay.hidden {
+      display: none
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2.2rem;
+      text-align: center;
+      max-width: 420px;
+      width: 90%
+    }
+
+    .panel-title {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--purple);
+      margin-bottom: 0.5rem
+    }
+
+    .panel-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.65
+    }
+
+    .pstats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      margin-bottom: 1.25rem
+    }
+
+    .ps {
+      background: rgba(168, 85, 247, 0.07);
+      border: 1px solid rgba(168, 85, 247, 0.18);
+      border-radius: 3px;
+      padding: 0.65rem
+    }
+
+    .ps-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--muted);
+      margin-bottom: 3px
+    }
+
+    .ps-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--purple)
+    }
+
+    .panel-btns {
+      display: flex;
+      gap: 0.65rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem
+    }
+
+    .save-msg {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 0.6rem
+    }
+
+    .lb-link {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--green);
+      border: 1px solid var(--green);
+      padding: 5px 14px;
+      border-radius: 3px;
+      text-decoration: none;
+      transition: all 0.15s;
+      margin-bottom: 0.75rem
+    }
+
+    .lb-link:hover {
+      background: var(--green);
+      color: var(--bg)
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <div class="logo">SORT<span>QUEST</span></div>
+    <div class="nav-links">
+      <a href="index_2.html">HOME</a>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="tag">GAME 04 — DATA STRUCTURE: QUEUE</div>
+    <h1>Queue Cafe ☕</h1>
+    <p class="sub">Click the correct customer to serve them. Always serve FIFO — the one who arrived first! VIPs get
+      priority in later levels.</p>
+
+    <div class="hud">
+      <div class="hud-box">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-val" id="hScore">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">SERVED</div>
+        <div class="hud-val" id="hServed">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">MISTAKES</div>
+        <div class="hud-val" id="hMistakes" style="color:var(--red)">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">LEVEL</div>
+        <div class="hud-val" id="hLevel">1</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">REMAINING</div>
+        <div class="hud-val" id="hRemaining">—</div>
+      </div>
+    </div>
+
+    <div class="level-banner">
+      <div class="level-title" id="levelTitle">LEVEL 1 — BASIC QUEUE</div>
+      <div class="level-desc" id="levelDesc">Click the correct customer to serve them in FIFO order.</div>
+    </div>
+
+    <div class="game-layout">
+      <div class="cafe-area">
+        <div class="instruction" id="instruction">
+          👆 <strong>Click the customer at the FRONT of the queue</strong> to bring them to the counter
+        </div>
+
+        <div class="section-lbl">QUEUE — WAITING CUSTOMERS</div>
+        <div class="queue-row" id="queueRow">
+          <div class="q-empty">Customers will arrive shortly...</div>
+        </div>
+
+        <div class="section-lbl">SERVICE COUNTER</div>
+        <div class="counter-zone" id="counterZone">
+          <div class="counter-empty">No customer at counter yet — click the front customer above!</div>
+        </div>
+
+        <div class="msg-box" id="msgBox">Welcome! Customers will start arriving. Click the person at the FRONT of the
+          queue (leftmost) to serve them. If you click someone else, that's a mistake!</div>
+      </div>
+
+      <div class="side-panel">
+        <div class="viz-box">
+          <div class="section-lbl">QUEUE STRUCTURE</div>
+          <div style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:4px">FRONT
+            [0] → → → BACK</div>
+          <div class="viz-list" id="vizList"></div>
+        </div>
+
+        <div class="log-box">
+          <div class="section-lbl">EVENT LOG</div>
+          <div id="logList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <div class="concept-title">WHAT YOU ARE LEARNING</div>
+      <p class="concept-text">A <strong style="color:var(--purple)">Queue</strong> is FIFO — First In, First Out. The
+        first customer to arrive must be the first served. Clicking the wrong customer = breaking queue order = mistake!
+        Level 3+ adds <strong style="color:var(--gold)">Priority Queues</strong> where VIPs go to the front.</p>
+      <div class="concept-code">
+        enqueue(x) → push to BACK — new customer joins<br>
+        dequeue() → pop from FRONT — you serve this one<br>
+        peek() → read FRONT — who should be next?<br>
+        <br>
+        Priority Queue → VIPs inserted at front,<br>
+        FIFO still respected within each priority group.
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <div class="panel-title">Queue Cafe ☕</div>
+      <p class="panel-sub">
+        Customers line up in order. You must <strong style="color:var(--purple)">click the correct customer</strong> to
+        serve them.<br><br>
+        Always pick the person at the <strong style="color:var(--green)">FRONT</strong> of the queue — that is
+        FIFO.<br><br>
+        Click the wrong person and you lose points. Let patience run out and they walk out!<br><br>
+        Level 3 introduces ⭐ <strong style="color:var(--gold)">VIP Priority</strong> — they go to the front!
+      </p>
+      <div class="panel-btns">
+        <button class="btn btn-p" onclick="startGame()">START GAME</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="levelOverlay">
+    <div class="panel">
+      <div class="panel-title" id="loTitle">Level Complete!</div>
+      <p class="panel-sub" id="loDesc"></p>
+      <div class="pstats" id="loStats"></div>
+      <div class="panel-btns">
+        <button class="btn btn-p" onclick="nextLevel()">NEXT LEVEL →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="gameOverOverlay">
+    <div class="panel">
+      <div class="panel-title" style="color:var(--red)">Cafe Closed! 😤</div>
+      <p class="panel-sub">Too many mistakes or customers walked out!</p>
+      <div class="pstats" id="goStats"></div>
+      <div class="save-msg" id="goSave">Saving score...</div>
+      <a href="leaderboard.html" class="lb-link" id="goLink" style="display:none">VIEW LEADERBOARD →</a>
+      <div class="panel-btns">
+        <button class="btn btn-p" onclick="restartGame()">PLAY AGAIN</button>
+        <a href="index.html" class="btn btn-m">HOME</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="winOverlay">
+    <div class="panel">
+      <div class="panel-title">Master Barista! ☕</div>
+      <p class="panel-sub">You completed all levels with perfect queue order. Excellent FIFO mastery!</p>
+      <div class="pstats" id="winStats"></div>
+      <div class="save-msg" id="winSave">Saving score...</div>
+      <a href="leaderboard.html" class="lb-link" id="winLink" style="display:none">VIEW LEADERBOARD →</a>
+      <div class="panel-btns">
+        <button class="btn btn-p" onclick="restartGame()">PLAY AGAIN</button>
+        <a href="index.html" class="btn btn-m">HOME</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var LEVELS = [
+      { num: 1, title: 'LEVEL 1 — BASIC QUEUE', desc: 'Click the customer at the FRONT of the queue to serve them. FIFO only!', toServe: 6, mistakeLimit: 3, arrivalRate: 4500, patience: 22, vip: false, priority: false },
+      { num: 2, title: 'LEVEL 2 — BUSY CAFE', desc: 'Faster arrivals and less patience. Stay focused on the FRONT!', toServe: 10, mistakeLimit: 3, arrivalRate: 3200, patience: 16, vip: false, priority: false },
+      { num: 3, title: 'LEVEL 3 — VIP PRIORITY', desc: '⭐ VIP customers jump to the front! They must be served before regulars behind them.', toServe: 10, mistakeLimit: 3, arrivalRate: 3200, patience: 16, vip: true, priority: true },
+      { num: 4, title: 'LEVEL 4 — RUSH HOUR', desc: 'Peak time! Fast arrivals, impatient VIPs. Click fast and click correctly!', toServe: 14, mistakeLimit: 3, arrivalRate: 2400, patience: 13, vip: true, priority: true }
+    ];
+
+    var EMOJIS = ['👩', '👨', '🧑', '👴', '👵', '🧔', '👩‍🦱', '👨‍🦳', '🧕', '👩‍🦰', '🧑‍🍳', '👩‍💼', '👨‍💼', '🧑‍🎤', '👩‍🎨'];
+    var ORDERS = ['☕ Espresso', '🥐 Croissant', '🍵 Tea', '🧁 Muffin', '🥤 Latte', '🍩 Donut', '🫖 Chai', '🧇 Waffle', '🥪 Sandwich', '🍰 Cake'];
+    var NAMES = ['Alice', 'Bob', 'Carlos', 'Diana', 'Ethan', 'Fatima', 'Grace', 'Hiro', 'Isla', 'Jay', 'Keiko', 'Luca', 'Maya', 'Noah', 'Omar', 'Priya', 'Quinn', 'Rosa', 'Sam', 'Tara'];
+
+    var queue = [], atCounter = null;
+    var score = 0, served = 0, mistakes = 0, levelServed = 0;
+    var level = 0, running = false;
+    var arrivalTimer = null, patienceTimers = {}, idCounter = 0;
+    var processingClick = false;
+
+    function lv() { return LEVELS[level]; }
+
+    function startGame() {
+      document.getElementById('startOverlay').classList.add('hidden');
+      level = 0; score = 0; served = 0; mistakes = 0;
+      startLevel();
+    }
+
+    function restartGame() {
+      document.getElementById('gameOverOverlay').classList.add('hidden');
+      document.getElementById('winOverlay').classList.add('hidden');
+      clearAllTimers();
+      queue = []; atCounter = null; score = 0; served = 0; mistakes = 0; level = 0;
+      startLevel();
+    }
+
+    function startLevel() {
+      levelServed = 0; queue = []; atCounter = null;
+      clearAllTimers(); patienceTimers = {}; idCounter = 0; processingClick = false;
+      var L = lv();
+      document.getElementById('hLevel').textContent = L.num;
+      document.getElementById('hRemaining').textContent = L.toServe;
+      document.getElementById('levelTitle').textContent = L.title;
+      document.getElementById('levelDesc').textContent = L.desc;
+      document.getElementById('instruction').innerHTML =
+        L.priority
+          ? '👆 <strong>Click the correct customer</strong> — VIPs go first, then FIFO order!'
+          : '👆 <strong>Click the customer at the FRONT of the queue</strong> (leftmost) to serve them';
+      setMsg(L.priority
+        ? 'VIP customers (gold border) jump to the front! Always click the frontmost customer.'
+        : 'Click the person at the very LEFT of the queue — that is the FRONT. FIFO order only!');
+      updateHUD();
+      renderQueue();
+      renderViz();
+      renderCounter();
+      running = true;
+      setTimeout(function () { addCustomer(false); }, 500);
+      setTimeout(function () { if (running) addCustomer(false); }, 1800);
+      arrivalTimer = setInterval(function () {
+        if (!running) return;
+        if (queue.length >= 8) return;
+        var isVip = lv().vip && Math.random() < 0.28;
+        addCustomer(isVip);
+      }, L.arrivalRate);
+    }
+
+    function clearAllTimers() {
+      clearInterval(arrivalTimer); arrivalTimer = null;
+      for (var k in patienceTimers) { clearInterval(patienceTimers[k]); }
+      patienceTimers = {};
+    }
+
+    function addCustomer(isVip) {
+      if (!running) return;
+      var L = lv();
+      var id = ++idCounter;
+      var c = {
+        id: id,
+        name: NAMES[Math.floor(Math.random() * NAMES.length)],
+        emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+        order: ORDERS[Math.floor(Math.random() * ORDERS.length)],
+        isVip: isVip,
+        patience: L.patience,
+        maxPatience: L.patience
+      };
+      if (L.priority && isVip) {
+        var ins = 0;
+        while (ins < queue.length && queue[ins].isVip) ins++;
+        queue.splice(ins, 0, c);
+        addLog('⭐ VIP ' + c.name + ' → priority front', 'lv');
+        setMsg('⭐ VIP ' + c.name + ' jumped to position ' + (ins + 1) + ' in the queue! Priority Queue in action — they go before regular customers.');
+      } else {
+        queue.push(c);
+        addLog(c.emoji + ' ' + c.name + ' joined back of queue', 'lm');
+      }
+      startPatienceTimer(c);
+      renderQueue();
+      renderViz();
+    }
+
+    function startPatienceTimer(c) {
+      var timer = setInterval(function () {
+        if (!running) { clearInterval(timer); return; }
+        var idx = queue.findIndex(function (x) { return x.id === c.id; });
+        if (idx === -1) { clearInterval(timer); return; }
+        queue[idx].patience--;
+        if (queue[idx].patience <= 0) {
+          clearInterval(timer);
+          walkOut(queue[idx]);
+        } else {
+          renderQueue();
+        }
+      }, 1000);
+      patienceTimers[c.id] = timer;
+    }
+
+    function walkOut(c) {
+      queue = queue.filter(function (x) { return x.id !== c.id; });
+      mistakes++;
+      score = Math.max(0, score - 60);
+      updateHUD();
+      renderQueue();
+      renderViz();
+      addLog('😤 ' + c.name + ' walked out!', 'lb');
+      setMsg('😤 ' + c.name + ' ran out of patience and left! -60 points. Click faster!');
+      checkGameOver();
+    }
+
+    function clickCustomer(idx) {
+      if (!running || processingClick || atCounter !== null) return;
+      processingClick = true;
+      var clicked = queue[idx];
+      var frontIdx = 0;
+
+      if (idx === frontIdx) {
+        queue.splice(0, 1);
+        clearInterval(patienceTimers[clicked.id]);
+        delete patienceTimers[clicked.id];
+        atCounter = clicked;
+        renderQueue();
+        renderViz();
+        renderCounter();
+        addLog('→ Serving ' + clicked.name + (clicked.isVip ? ' ⭐' : ''), 'lg');
+        setMsg('✓ Correct! ' + clicked.emoji + ' ' + clicked.name + ' is now at the counter. Complete their order below!');
+        processingClick = false;
+      } else {
+        mistakes++;
+        score = Math.max(0, score - 80);
+        updateHUD();
+        addLog('✗ Wrong! Clicked ' + clicked.name + ' (not front)', 'lb');
+        setMsg('❌ Wrong! You clicked ' + clicked.emoji + ' ' + clicked.name + ' but they are not at the front. Always serve position [0] first — FIFO!');
+        var faceEl = document.querySelectorAll('.c-face')[idx];
+        if (faceEl) {
+          faceEl.classList.add('wrong');
+          setTimeout(function () { faceEl.classList.remove('wrong'); }, 400);
+        }
+        processingClick = false;
+        checkGameOver();
+      }
+    }
+
+    function completeOrder() {
+      if (!atCounter) return;
+      var c = atCounter;
+      atCounter = null;
+      served++; levelServed++;
+      var bonus = c.isVip ? 160 : 100;
+      score += bonus;
+      updateHUD();
+      document.getElementById('hRemaining').textContent = Math.max(0, lv().toServe - levelServed);
+      renderCounter();
+      renderViz();
+      addLog('✓ Served ' + c.name + ' +' + bonus, (c.isVip ? 'lv' : 'lg'));
+      setMsg('✓ Order done! ' + c.emoji + ' ' + c.name + ' is happy! +' + bonus + ' points.' + (c.isVip ? ' VIP bonus!' : ''));
+      checkLevelComplete();
+    }
+
+    function checkLevelComplete() {
+      if (levelServed >= lv().toServe) {
+        running = false;
+        clearAllTimers();
+        if (level >= LEVELS.length - 1) showWin();
+        else showLevelComplete();
+      }
+    }
+
+    function checkGameOver() {
+      if (mistakes >= lv().mistakeLimit) {
+        running = false;
+        clearAllTimers();
+        showGameOver();
+      }
+    }
+
+    function showLevelComplete() {
+      var L = lv();
+      document.getElementById('loTitle').textContent = 'Level ' + L.num + ' Complete! ☕';
+      document.getElementById('loDesc').textContent = 'Great queue management! Get ready for level ' + (L.num + 1) + '.';
+      document.getElementById('loStats').innerHTML =
+        '<div class="ps"><div class="ps-label">SERVED</div><div class="ps-val">' + levelServed + '</div></div>' +
+        '<div class="ps"><div class="ps-label">SCORE</div><div class="ps-val">' + score + '</div></div>' +
+        '<div class="ps"><div class="ps-label">MISTAKES</div><div class="ps-val" style="color:var(--red)">' + mistakes + '</div></div>' +
+        '<div class="ps"><div class="ps-label">NEXT</div><div class="ps-val">Level ' + (L.num + 1) + '</div></div>';
+      document.getElementById('levelOverlay').classList.remove('hidden');
+    }
+
+    function nextLevel() {
+      document.getElementById('levelOverlay').classList.add('hidden');
+      level++;
+      startLevel();
+    }
+
+    function showGameOver() {
+      var L = lv();
+      document.getElementById('goStats').innerHTML =
+        '<div class="ps"><div class="ps-label">SCORE</div><div class="ps-val">' + score + '</div></div>' +
+        '<div class="ps"><div class="ps-label">SERVED</div><div class="ps-val">' + served + '</div></div>' +
+        '<div class="ps"><div class="ps-label">MISTAKES</div><div class="ps-val" style="color:var(--red)">' + mistakes + '</div></div>' +
+        '<div class="ps"><div class="ps-label">LEVEL</div><div class="ps-val">' + L.num + '</div></div>';
+      document.getElementById('gameOverOverlay').classList.remove('hidden');
+      saveScore('goSave', 'goLink');
+    }
+
+    function showWin() {
+      document.getElementById('winStats').innerHTML =
+        '<div class="ps"><div class="ps-label">FINAL SCORE</div><div class="ps-val">' + score + '</div></div>' +
+        '<div class="ps"><div class="ps-label">TOTAL SERVED</div><div class="ps-val">' + served + '</div></div>' +
+        '<div class="ps"><div class="ps-label">MISTAKES</div><div class="ps-val" style="color:var(--red)">' + mistakes + '</div></div>' +
+        '<div class="ps"><div class="ps-label">LEVELS</div><div class="ps-val">4/4</div></div>';
+      document.getElementById('winOverlay').classList.remove('hidden');
+      saveScore('winSave', 'winLink');
+    }
+
+    function saveScore(saveId, linkId) {
+      var el = document.getElementById(saveId);
+      el.textContent = 'Saving score...';
+      fetch('/api/submit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player: 'Player', game: 'queue-cafe', score: score, comparisons: served, swaps: mistakes })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          el.textContent = d.success ? '✓ Score saved!' : 'Could not save score.';
+          if (d.success) document.getElementById(linkId).style.display = 'inline-block';
+        })
+        .catch(function () {
+          el.textContent = 'Server offline — score not saved.';
+          document.getElementById(linkId).style.display = 'inline-block';
+        });
+    }
+
+    function updateHUD() {
+      document.getElementById('hScore').textContent = score;
+      document.getElementById('hServed').textContent = served;
+      document.getElementById('hMistakes').textContent = mistakes;
+    }
+
+    function setMsg(t) { document.getElementById('msgBox').textContent = t; }
+
+    function addLog(text, cls) {
+      var list = document.getElementById('logList');
+      var row = document.createElement('div');
+      row.className = 'log-row ' + cls;
+      var t = new Date();
+      var ts = t.getMinutes() + ':' + String(t.getSeconds()).padStart(2, '0');
+      row.innerHTML = '<span>' + text + '</span><span style="color:var(--muted)">' + ts + '</span>';
+      list.insertBefore(row, list.firstChild);
+      if (list.children.length > 25) list.removeChild(list.lastChild);
+    }
+
+    function renderQueue() {
+      var row = document.getElementById('queueRow');
+      row.innerHTML = '';
+      if (queue.length === 0) {
+        var e = document.createElement('div');
+        e.className = 'q-empty';
+        e.textContent = 'Queue is empty';
+        row.appendChild(e);
+        return;
+      }
+      queue.forEach(function (c, i) {
+        if (i === 0) {
+          var fl = document.createElement('div');
+          fl.className = 'q-arrow';
+          fl.textContent = 'FRONT';
+          row.appendChild(fl);
+        }
+        var wrap = document.createElement('div');
+        wrap.className = 'customer';
+        var pct = Math.max(0, (c.patience / c.maxPatience) * 100);
+        var pc = pct > 60 ? 'var(--green)' : pct > 30 ? 'var(--orange)' : 'var(--red)';
+        var btn = document.createElement('button');
+        btn.className = 'c-btn';
+        btn.title = i === 0 ? 'Click to serve ' + c.name + ' (FRONT of queue)' : '⚠ Not the front! Serve position [0] first';
+        btn.setAttribute('data-idx', i);
+        btn.innerHTML =
+          '<div class="c-face ' + (c.isVip ? 'vip' : '') + '">'
+          + (c.isVip ? '<div class="vip-badge">VIP</div>' : '') + c.emoji
+          + '</div>'
+          + '<div class="c-name">' + c.name + '</div>'
+          + '<div class="c-patience"><div class="c-patience-bar" style="width:' + pct + '%;background:' + pc + '"></div></div>'
+          + '<div class="c-pos">[' + i + ']' + (i === 0 ? ' ←FRONT' : ' ') + '</div>';
+        btn.onclick = (function (idx) { return function () { clickCustomer(idx); }; })(i);
+        if (atCounter !== null) btn.disabled = true;
+        wrap.appendChild(btn);
+        row.appendChild(wrap);
+        if (i < queue.length - 1) {
+          var sep = document.createElement('div');
+          sep.className = 'q-arrow';
+          sep.textContent = '→';
+          row.appendChild(sep);
+        } else {
+          var bl = document.createElement('div');
+          bl.className = 'q-arrow';
+          bl.textContent = 'BACK';
+          row.appendChild(bl);
+        }
+      });
+    }
+
+    function renderCounter() {
+      var zone = document.getElementById('counterZone');
+      if (!atCounter) {
+        zone.innerHTML = '<div class="counter-empty">No customer at counter — click the FRONT customer above!</div>';
+        return;
+      }
+      var c = atCounter;
+      zone.innerHTML =
+        '<div class="counter-customer">'
+        + '<div class="counter-face ' + (c.isVip ? 'vip' : '') + '">'
+        + (c.isVip ? '<div class="vip-badge">VIP</div>' : '') + c.emoji + '</div>'
+        + '<div class="counter-info">'
+        + '<div class="counter-name">' + c.name + (c.isVip ? ' ⭐' : '') + '</div>'
+        + '<div class="counter-order">Order: ' + c.order + '</div>'
+        + '<div class="counter-actions">'
+        + '<button class="btn btn-g" onclick="completeOrder()">✓ ORDER COMPLETE (+' + (c.isVip ? 160 : 100) + 'pts)</button>'
+        + '</div></div></div>';
+    }
+
+    function renderViz() {
+      var list = document.getElementById('vizList');
+      list.innerHTML = '';
+      if (queue.length === 0) {
+        var e = document.createElement('div');
+        e.style.cssText = 'font-family:Space Mono,monospace;font-size:0.62rem;color:var(--muted);padding:4px';
+        e.textContent = 'Queue empty';
+        list.appendChild(e);
+        return;
+      }
+      queue.forEach(function (c, i) {
+        var row = document.createElement('div');
+        row.className = 'viz-row' + (i === 0 ? ' front' : '') + (c.isVip ? ' vip-v' : '');
+        row.innerHTML =
+          '<span class="viz-idx">[' + i + ']</span>'
+          + '<span class="viz-em">' + c.emoji + '</span>'
+          + '<span class="viz-nm">' + c.name + '</span>'
+          + '<span class="viz-tag ' + (c.isVip ? 'vt-vip' : 'vt-reg') + '">' + (c.isVip ? 'VIP' : 'REG') + '</span>'
+          + (i === 0 ? '<span style="font-family:Space Mono,monospace;font-size:0.5rem;color:var(--purple)">FRONT</span>' : '');
+        list.appendChild(row);
+      });
+    }
+  </script>
+</body>
+
+</html>

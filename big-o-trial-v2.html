@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Big-O Trial</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c10;
+  --panel: #0f1318;
+  --border: #1e2530;
+  --gold: #f5c842;
+  --gold2: #e8a820;
+  --red: #ff3a3a;
+  --green: #39ff7a;
+  --blue: #38b6ff;
+  --purple: #b06aff;
+  --cyan: #00f5d4;
+  --text: #c8d0dc;
+  --dim: #4a5568;
+  --white: #f0f4ff;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+/* scanline overlay */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+.screen { display:none; }
+.screen.active { display:flex; flex-direction:column; min-height:100vh; }
+
+/* ── PARTICLES ── */
+#particles { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+.particle {
+  position:absolute;
+  width:2px; height:2px;
+  background:var(--gold);
+  border-radius:50%;
+  animation: particle-float linear infinite;
+  opacity:0;
+}
+@keyframes particle-float {
+  0% { transform:translateY(100vh) translateX(0); opacity:0; }
+  10% { opacity:0.6; }
+  90% { opacity:0.3; }
+  100% { transform:translateY(-20px) translateX(var(--dx)); opacity:0; }
+}
+
+/* ── TITLE SCREEN ── */
+#title-screen {
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:40px 20px;
+  position:relative;
+  z-index:1;
+}
+
+.title-logo {
+  margin-bottom: 8px;
+}
+
+.title-logo-top {
+  font-family:'Bebas Neue', sans-serif;
+  font-size: clamp(70px,15vw,160px);
+  color: var(--gold);
+  line-height:0.9;
+  text-shadow:
+    0 0 30px rgba(245,200,66,0.5),
+    0 0 60px rgba(245,200,66,0.2),
+    4px 4px 0 rgba(0,0,0,0.8);
+  letter-spacing:4px;
+  animation: title-glow 3s ease-in-out infinite;
+}
+
+@keyframes title-glow {
+  0%,100% { text-shadow: 0 0 30px rgba(245,200,66,0.5), 4px 4px 0 rgba(0,0,0,0.8); }
+  50% { text-shadow: 0 0 60px rgba(245,200,66,0.8), 0 0 100px rgba(245,200,66,0.3), 4px 4px 0 rgba(0,0,0,0.8); }
+}
+
+.title-logo-sub {
+  font-family:'Share Tech Mono', monospace;
+  font-size: clamp(10px,2vw,16px);
+  color: var(--cyan);
+  letter-spacing:6px;
+  text-transform:uppercase;
+  margin-bottom:40px;
+  animation: blink-sub 2s step-end infinite;
+}
+
+@keyframes blink-sub {
+  0%,100%{opacity:1} 50%{opacity:0.4}
+}
+
+.title-gavel {
+  font-size:60px;
+  display:block;
+  animation:gavel-swing 1.5s ease-in-out infinite;
+  margin-bottom:30px;
+}
+@keyframes gavel-swing {
+  0%,100%{transform:rotate(-15deg)}
+  50%{transform:rotate(15deg)}
+}
+
+.mode-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+  gap:16px;
+  max-width:760px;
+  width:100%;
+  margin-bottom:30px;
+}
+
+.mode-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:28px 20px;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  overflow:hidden;
+}
+
+.mode-card::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: linear-gradient(135deg, var(--card-color, var(--gold)) 0%, transparent 60%);
+  opacity:0;
+  transition:opacity 0.2s;
+}
+
+.mode-card:hover { transform:translateY(-4px) scale(1.02); border-color:var(--card-color, var(--gold)); box-shadow:0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(245,200,66,0.1); }
+.mode-card:hover::before { opacity:0.05; }
+.mode-card:active { transform:translateY(0) scale(0.98); }
+
+.mode-card[data-mode="trial"] { --card-color:var(--gold); }
+.mode-card[data-mode="survival"] { --card-color:var(--red); }
+.mode-card[data-mode="race"] { --card-color:var(--blue); }
+.mode-card[data-mode="pivot"] { --card-color:var(--purple); }
+
+.mode-icon { font-size:40px; display:block; margin-bottom:12px; }
+.mode-name {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;
+  letter-spacing:2px;
+  color:var(--card-color, var(--gold));
+  margin-bottom:6px;
+}
+.mode-desc { font-size:13px; color:var(--dim); line-height:1.5; }
+
+.hiscore-bar {
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;
+  color:var(--dim);
+  letter-spacing:2px;
+}
+.hiscore-bar span { color:var(--gold); }
+
+/* ── HUD ── */
+.hud {
+  position:fixed;
+  top:0; left:0; right:0;
+  height:56px;
+  background: rgba(10,12,16,0.95);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:24px;
+  z-index:100;
+  backdrop-filter:blur(10px);
+}
+
+.hud-logo {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;
+  color:var(--gold);
+  letter-spacing:2px;
+  margin-right:auto;
+}
+
+.hud-stat {
+  text-align:center;
+  min-width:60px;
+}
+.hud-stat-label {
+  font-size:8px;
+  letter-spacing:2px;
+  color:var(--dim);
+  text-transform:uppercase;
+  display:block;
+}
+.hud-stat-val {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;
+  color:var(--gold);
+  line-height:1;
+}
+.hud-stat-val.green { color:var(--green); }
+.hud-stat-val.red { color:var(--red); }
+.hud-stat-val.blue { color:var(--blue); }
+
+.lives-display { display:flex; gap:4px; align-items:center; }
+.life-heart { font-size:16px; transition:all 0.3s; }
+.life-heart.lost { opacity:0.15; filter:grayscale(1); }
+
+/* ── GAME SCREEN ── */
+#game-screen { padding-top:56px; }
+
+.game-arena {
+  flex:1;
+  display:grid;
+  grid-template-columns: 1fr 340px;
+  gap:0;
+  min-height:calc(100vh - 56px);
+}
+
+@media(max-width:900px) {
+  .game-arena { grid-template-columns:1fr; }
+}
+
+/* ── MAIN STAGE ── */
+.main-stage {
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  overflow-y:auto;
+}
+
+/* CASE BANNER */
+.case-banner {
+  background: linear-gradient(135deg, rgba(245,200,66,0.08), rgba(245,200,66,0.02));
+  border:1px solid rgba(245,200,66,0.2);
+  border-radius:8px;
+  padding:20px 24px;
+  display:flex;
+  align-items:center;
+  gap:20px;
+  animation:slide-in-top 0.4s ease;
+}
+@keyframes slide-in-top {
+  from{transform:translateY(-20px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+.case-badge {
+  background:var(--gold);
+  color:var(--bg);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:11px;
+  letter-spacing:2px;
+  padding:4px 10px;
+  border-radius:4px;
+  white-space:nowrap;
+}
+
+.case-title-area { flex:1; }
+.case-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;
+  color:var(--white);
+  letter-spacing:2px;
+  line-height:1;
+}
+.case-subtitle { font-size:13px; color:var(--dim); margin-top:2px; }
+
+.case-type-tag {
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:4px;
+  border:1px solid;
+}
+.tag-random { color:var(--blue); border-color:var(--blue); background:rgba(56,182,255,0.08); }
+.tag-nearly { color:var(--green); border-color:var(--green); background:rgba(57,255,122,0.08); }
+.tag-reversed { color:var(--red); border-color:var(--red); background:rgba(255,58,58,0.08); }
+.tag-duplicates { color:var(--purple); border-color:var(--purple); background:rgba(176,106,255,0.08); }
+.tag-huge { color:var(--gold); border-color:var(--gold); background:rgba(245,200,66,0.08); }
+
+/* ── DRAG ARENA ── */
+.drag-section-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  letter-spacing:2px;
+  color:var(--cyan);
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.drag-section-title::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg,var(--cyan),transparent);
+  opacity:0.3;
+}
+
+.drag-arena {
+  background:rgba(0,0,0,0.3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:20px;
+  min-height:160px;
+  position:relative;
+}
+
+.drag-instruction {
+  font-size:12px;
+  color:var(--dim);
+  margin-bottom:16px;
+  font-family:'Share Tech Mono',monospace;
+}
+
+.sort-tiles {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  min-height:80px;
+  align-items:flex-end;
+  padding-bottom:8px;
+}
+
+.sort-tile {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  cursor:grab;
+  transition:all 0.15s;
+  position:relative;
+}
+
+.sort-tile:active { cursor:grabbing; }
+
+.tile-bar {
+  width:40px;
+  background:linear-gradient(180deg, var(--tile-color, var(--blue)) 0%, rgba(56,182,255,0.4) 100%);
+  border-radius:4px 4px 0 0;
+  border:1px solid var(--tile-color, var(--blue));
+  border-bottom:none;
+  transition:all 0.15s;
+  box-shadow:0 0 10px rgba(56,182,255,0.2);
+  position:relative;
+}
+
+.tile-bar::after {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:30%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.2),transparent);
+  border-radius:4px 4px 0 0;
+}
+
+.tile-val {
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;
+  color:var(--text);
+  padding:4px 0 2px;
+  background:rgba(15,19,24,0.9);
+  width:40px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:0 0 4px 4px;
+}
+
+.sort-tile.dragging { opacity:0.4; transform:scale(0.95); }
+.sort-tile.drag-over .tile-bar { border-color:var(--gold) !important; box-shadow:0 0 20px rgba(245,200,66,0.4); }
+.sort-tile.correct .tile-bar { --tile-color:var(--green); }
+.sort-tile.wrong-pos .tile-bar { --tile-color:var(--red); }
+
+/* CHECK BUTTON */
+.check-row {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+
+.btn-game {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  letter-spacing:2px;
+  padding:10px 28px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  transition:all 0.15s;
+  position:relative;
+  overflow:hidden;
+}
+
+.btn-game::after {
+  content:'';
+  position:absolute;
+  top:0; left:-100%;
+  width:100%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  transition:left 0.3s;
+}
+.btn-game:hover::after { left:100%; }
+
+.btn-gold { background:var(--gold); color:var(--bg); }
+.btn-gold:hover { background:var(--gold2); transform:translateY(-2px); box-shadow:0 4px 20px rgba(245,200,66,0.3); }
+.btn-gold:active { transform:translateY(0); }
+.btn-gold:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+
+.btn-blue { background:var(--blue); color:var(--bg); }
+.btn-blue:hover { transform:translateY(-2px); box-shadow:0 4px 20px rgba(56,182,255,0.3); }
+.btn-blue:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+
+.btn-ghost {
+  background:transparent;
+  color:var(--dim);
+  border:1px solid var(--border);
+  font-size:14px;
+  padding:8px 16px;
+}
+.btn-ghost:hover { border-color:var(--text); color:var(--text); }
+
+.hint-text { font-size:12px; color:var(--dim); font-family:'Share Tech Mono',monospace; }
+
+/* ── ALGO RACE ── */
+.race-section {
+  background:rgba(0,0,0,0.3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:20px;
+}
+
+.race-lane {
+  margin-bottom:16px;
+}
+
+.race-lane-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:8px;
+}
+
+.lane-name {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  letter-spacing:1px;
+}
+
+.lane-stats {
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  color:var(--dim);
+}
+
+.race-track {
+  height:10px;
+  background:rgba(255,255,255,0.05);
+  border-radius:5px;
+  overflow:hidden;
+  position:relative;
+}
+
+.race-fill {
+  height:100%;
+  border-radius:5px;
+  transition:width 0.1s linear;
+  position:relative;
+}
+.race-fill::after {
+  content:'';
+  position:absolute;
+  right:-4px; top:50%;
+  transform:translateY(-50%);
+  width:8px; height:8px;
+  border-radius:50%;
+  background:inherit;
+  box-shadow:0 0 8px 2px currentColor;
+}
+
+.lane-bubble .lane-name { color:var(--red); }
+.lane-bubble .race-fill { background:var(--red); box-shadow:0 0 8px var(--red); }
+
+.lane-quick .lane-name { color:var(--blue); }
+.lane-quick .race-fill { background:var(--blue); box-shadow:0 0 8px var(--blue); }
+
+.lane-merge .lane-name { color:var(--green); }
+.lane-merge .race-fill { background:var(--green); box-shadow:0 0 8px var(--green); }
+
+.race-bars {
+  display:flex;
+  gap:3px;
+  align-items:flex-end;
+  height:80px;
+  margin-bottom:6px;
+}
+
+.race-bar {
+  flex:1;
+  border-radius:3px 3px 0 0;
+  transition:height 0.08s, background 0.1s;
+  min-width:4px;
+}
+
+/* ── VERDICT POPUP ── */
+.verdict-popup {
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(4px);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.3s;
+}
+
+.verdict-popup.show {
+  opacity:1;
+  pointer-events:all;
+}
+
+.verdict-card {
+  background:var(--panel);
+  border:2px solid var(--gold);
+  border-radius:12px;
+  padding:40px;
+  max-width:480px;
+  width:90%;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  animation:verdict-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes verdict-pop {
+  from{transform:scale(0.7) translateY(30px);opacity:0}
+  to{transform:scale(1) translateY(0);opacity:1}
+}
+
+.verdict-card::before {
+  content:'';
+  position:absolute;
+  top:-50%; left:-50%;
+  width:200%; height:200%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(245,200,66,0.05) 60deg, transparent 120deg);
+  animation:spin-bg 8s linear infinite;
+}
+@keyframes spin-bg { to{transform:rotate(360deg)} }
+
+.verdict-icon { font-size:64px; display:block; margin-bottom:12px; }
+.verdict-result {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px;
+  letter-spacing:4px;
+  line-height:1;
+  margin-bottom:8px;
+}
+.verdict-result.win { color:var(--gold); text-shadow:0 0 30px rgba(245,200,66,0.5); }
+.verdict-result.lose { color:var(--red); }
+.verdict-result.ok { color:var(--green); }
+
+.verdict-explain {
+  font-size:14px;
+  color:var(--dim);
+  margin-bottom:20px;
+  line-height:1.6;
+}
+
+.score-chips {
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:24px;
+}
+
+.score-chip {
+  font-family:'Share Tech Mono',monospace;
+  font-size:12px;
+  padding:4px 12px;
+  border-radius:20px;
+  border:1px solid;
+}
+.chip-pos { color:var(--green); border-color:var(--green); background:rgba(57,255,122,0.08); }
+.chip-neg { color:var(--red); border-color:var(--red); background:rgba(255,58,58,0.08); }
+.chip-neutral { color:var(--gold); border-color:var(--gold); background:rgba(245,200,66,0.08); }
+
+.rep-change {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:42px;
+  margin-bottom:20px;
+}
+
+/* ── SIDEBAR PANEL ── */
+.sidebar-panel {
+  background:rgba(15,19,24,0.8);
+  border-left:1px solid var(--border);
+  padding:20px 16px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.panel-section-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:16px;
+  letter-spacing:2px;
+  color:var(--dim);
+  margin-bottom:12px;
+  padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+
+/* ALGO CARDS */
+.algo-card {
+  background:rgba(0,0,0,0.3);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+
+.algo-card:hover { border-color:var(--card-color); transform:translateX(4px); }
+.algo-card.selected {
+  border-color:var(--card-color) !important;
+  background:rgba(var(--card-rgb, 56,182,255), 0.08);
+  box-shadow:inset 0 0 20px rgba(var(--card-rgb,56,182,255),0.05),
+             -4px 0 0 var(--card-color);
+}
+
+.algo-card[data-algo="bubble"] { --card-color:var(--red); --card-rgb:255,58,58; }
+.algo-card[data-algo="quick"] { --card-color:var(--blue); --card-rgb:56,182,255; }
+.algo-card[data-algo="merge"] { --card-color:var(--green); --card-rgb:57,255,122; }
+
+.selected-badge {
+  position:absolute;
+  top:8px; right:8px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:8px;
+  letter-spacing:1px;
+  color:var(--card-color);
+  opacity:0;
+  transition:opacity 0.2s;
+}
+.algo-card.selected .selected-badge { opacity:1; }
+
+.algo-name {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;
+  color:var(--card-color);
+  letter-spacing:1px;
+}
+.algo-role { font-size:10px; color:var(--dim); font-style:italic; margin-bottom:8px; }
+
+.complexity-row { display:flex; gap:6px; flex-wrap:wrap; }
+.cx-badge {
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;
+  padding:2px 6px;
+  border-radius:3px;
+  border:1px solid rgba(255,255,255,0.1);
+  color:var(--dim);
+}
+.cx-badge.best { color:var(--green); border-color:rgba(57,255,122,0.3); }
+.cx-badge.worst { color:var(--red); border-color:rgba(255,58,58,0.3); }
+
+/* INFO TOOLTIP */
+.info-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.info-box {
+  background:rgba(0,0,0,0.3);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:10px;
+  text-align:center;
+}
+.info-box-val {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  color:var(--gold);
+  display:block;
+}
+.info-box-label {
+  font-size:9px;
+  color:var(--dim);
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+/* COMPLEXITY CHART - mini visual */
+.complexity-chart {
+  height:80px;
+  display:flex;
+  align-items:flex-end;
+  gap:4px;
+  padding:4px;
+  background:rgba(0,0,0,0.2);
+  border-radius:6px;
+  border:1px solid var(--border);
+}
+.cx-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.cx-bar-fill { width:100%; border-radius:3px 3px 0 0; transition:height 0.5s; }
+.cx-bar-label { font-size:8px; color:var(--dim); font-family:'Share Tech Mono',monospace; white-space:nowrap; }
+
+/* COURT LOG */
+.court-log {
+  background:rgba(0,0,0,0.4);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  max-height:120px;
+  overflow-y:auto;
+  line-height:1.8;
+}
+.log-good { color:var(--green); }
+.log-bad { color:var(--red); }
+.log-info { color:var(--gold); }
+.log-dim { color:var(--dim); }
+
+/* ── END SCREEN ── */
+#end-screen {
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:60px 20px;
+  position:relative;
+  z-index:1;
+}
+
+.end-big-icon { font-size:100px; display:block; animation:end-bounce 1s ease infinite alternate; }
+@keyframes end-bounce { from{transform:scale(1)} to{transform:scale(1.1)} }
+
+.end-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(48px,10vw,96px);
+  letter-spacing:4px;
+  margin:20px 0 10px;
+}
+
+.end-sub {
+  font-size:16px;
+  color:var(--dim);
+  max-width:500px;
+  line-height:1.6;
+  margin:0 auto 40px;
+}
+
+.end-stats {
+  display:flex;
+  gap:24px;
+  justify-content:center;
+  margin-bottom:40px;
+  flex-wrap:wrap;
+}
+
+.end-stat {
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:20px 32px;
+  text-align:center;
+}
+
+.end-stat-val {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px;
+  color:var(--gold);
+  display:block;
+}
+.end-stat-label {
+  font-size:11px;
+  letter-spacing:2px;
+  color:var(--dim);
+  text-transform:uppercase;
+}
+
+/* FLASH EFFECT */
+.flash-overlay {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:300;
+  opacity:0;
+  transition:opacity 0.1s;
+}
+.flash-overlay.green { background:rgba(57,255,122,0.15); }
+.flash-overlay.red { background:rgba(255,58,58,0.15); }
+
+/* COMBO DISPLAY */
+.combo-display {
+  position:fixed;
+  top:70px;
+  right:20px;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:36px;
+  color:var(--gold);
+  text-shadow:0 0 20px rgba(245,200,66,0.5);
+  pointer-events:none;
+  opacity:0;
+  transform:translateY(0) scale(1);
+  transition:all 0.3s;
+  z-index:150;
+}
+.combo-display.show {
+  opacity:1;
+  animation:combo-pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes combo-pop {
+  0%{transform:scale(0.5);opacity:0}
+  60%{transform:scale(1.3)}
+  100%{transform:scale(1);opacity:1}
+}
+
+/* PROGRESS BAR */
+.progress-bar-outer {
+  height:4px;
+  background:rgba(255,255,255,0.05);
+  border-radius:2px;
+  overflow:hidden;
+  margin-top:4px;
+}
+.progress-bar-fill {
+  height:100%;
+  background:linear-gradient(90deg, var(--gold), var(--gold2));
+  border-radius:2px;
+  transition:width 0.5s ease;
+  box-shadow:0 0 8px var(--gold);
+}
+
+/* TIMER */
+.timer-ring {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:12px;
+}
+.timer-val { color:var(--gold); font-size:18px; }
+.timer-val.urgent { color:var(--red); animation:urgent-pulse 0.5s step-end infinite; }
+@keyframes urgent-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* SHAKE ANIMATION */
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+/* SORT COMPLETE ANIMATION */
+@keyframes tile-correct {
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-10px)}
+  100%{transform:translateY(0)}
+}
+
+.sort-tile.bounce { animation:tile-correct 0.4s ease; }
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+<div class="flash-overlay" id="flash"></div>
+<div class="combo-display" id="combo-display"></div>
+
+<!-- ── TITLE SCREEN ── -->
+<div id="title-screen" class="screen active">
+  <span class="title-gavel">⚖️</span>
+  <div class="title-logo">
+    <div class="title-logo-top">THE BIG-O TRIAL</div>
+  </div>
+  <div class="title-logo-sub">// Algorithm Courtroom :: Interactive Edition //</div>
+
+  <div class="mode-grid">
+    <div class="mode-card" data-mode="trial" onclick="startGame('trial')">
+      <span class="mode-icon">📋</span>
+      <div class="mode-name">Trial Mode</div>
+      <div class="mode-desc">10 escalating cases. Sort the evidence, pick the right algorithm, prove your reasoning. Score ≥200 to become Chief Justice.</div>
+    </div>
+    <div class="mode-card" data-mode="survival" onclick="startGame('survival')">
+      <span class="mode-icon">💀</span>
+      <div class="mode-name">Survival</div>
+      <div class="mode-desc">Infinite cases. 3 lives. One wrong move and the court loses faith. How long can you last?</div>
+    </div>
+    <div class="mode-card" data-mode="race" onclick="startGame('race')">
+      <span class="mode-icon">🏁</span>
+      <div class="mode-name">Algorithm Race</div>
+      <div class="mode-desc">Watch all three algorithms race in real-time. Bet on the winner before they run. Earn bonus points for correct predictions.</div>
+    </div>
+    <div class="mode-card" data-mode="pivot" onclick="startGame('pivot')">
+      <span class="mode-icon">🎯</span>
+      <div class="mode-name">Pivot Master</div>
+      <div class="mode-desc">QuickSort only. Choose your pivot wisely on adversarial datasets. Avoid worst-case O(n²).</div>
+    </div>
+  </div>
+  <div class="hiscore-bar">HI-SCORE: <span id="hiscore-display">0</span> REP &nbsp;|&nbsp; CASES SOLVED: <span id="solved-display">0</span></div>
+</div>
+
+<!-- ── HUD ── -->
+<div class="hud" id="game-hud" style="display:none">
+  <div class="hud-logo">⚖️ BIG-O</div>
+  <div class="hud-stat">
+    <span class="hud-stat-label">Case</span>
+    <span class="hud-stat-val blue" id="hud-case">1</span>
+  </div>
+  <div class="hud-stat">
+    <span class="hud-stat-label">Mode</span>
+    <span class="hud-stat-val" id="hud-mode" style="font-size:13px;letter-spacing:1px">TRIAL</span>
+  </div>
+  <div class="hud-stat">
+    <span class="hud-stat-label">Reputation</span>
+    <span class="hud-stat-val green" id="hud-rep">100</span>
+  </div>
+  <div class="hud-stat">
+    <span class="hud-stat-label">Combo</span>
+    <span class="hud-stat-val" id="hud-combo" style="color:var(--purple)">x1</span>
+  </div>
+  <div class="lives-display" id="lives-display"></div>
+  <div class="timer-ring" id="timer-ring" style="display:none">
+    ⏱ <span class="timer-val" id="timer-val">30</span>
+  </div>
+  <button class="btn-ghost btn-game" onclick="goHome()" style="font-size:12px;padding:6px 12px;margin-left:auto">✕ QUIT</button>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<div id="game-screen" class="screen">
+  <div class="game-arena">
+    <!-- MAIN STAGE -->
+    <div class="main-stage" id="main-stage">
+
+      <!-- Case Banner -->
+      <div class="case-banner" id="case-banner">
+        <div class="case-badge" id="case-badge">CASE #001</div>
+        <div class="case-title-area">
+          <div class="case-title" id="case-title">Loading...</div>
+          <div class="case-subtitle" id="case-subtitle"></div>
+        </div>
+        <span class="case-type-tag" id="case-type-tag"></span>
+      </div>
+
+      <!-- PROGRESS -->
+      <div id="progress-section" style="padding:0 4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:4px;font-family:'Share Tech Mono',monospace">
+          <span>TRIAL PROGRESS</span>
+          <span id="progress-label">0/10</span>
+        </div>
+        <div class="progress-bar-outer">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- DRAG TO SORT -->
+      <div id="drag-section">
+        <div class="drag-section-title">DRAG & SORT THE EVIDENCE</div>
+        <div class="drag-arena">
+          <div class="drag-instruction" id="drag-instruction">Drag the bars to arrange them in ascending order (smallest → largest). Then select your algorithm and submit.</div>
+          <div class="sort-tiles" id="sort-tiles"></div>
+          <div class="check-row">
+            <button class="btn-game btn-gold" id="btn-check" onclick="checkSort()" disabled>⚡ CHECK ORDER</button>
+            <button class="btn-game btn-ghost" onclick="shuffleTiles()">↺ SHUFFLE</button>
+            <button class="btn-game btn-ghost" onclick="hintSort()" id="btn-hint">💡 HINT (-5 pts)</button>
+            <span class="hint-text" id="sort-feedback"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALGORITHM RACE SECTION -->
+      <div id="race-section" style="display:none">
+        <div class="drag-section-title">ALGORITHM RACE</div>
+        <div class="race-section">
+          <div style="font-size:12px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-bottom:16px" id="race-instruction">Watch the algorithms compete on this dataset. Who finishes first?</div>
+
+          <div class="race-lane lane-bubble">
+            <div class="race-lane-header">
+              <span class="lane-name">🔴 BUBBLE SORT</span>
+              <span class="lane-stats" id="bubble-stats">0 ops</span>
+            </div>
+            <div class="race-bars" id="race-bars-bubble"></div>
+            <div class="race-track"><div class="race-fill" id="race-fill-bubble" style="width:0%"></div></div>
+          </div>
+
+          <div class="race-lane lane-quick">
+            <div class="race-lane-header">
+              <span class="lane-name">🔵 QUICK SORT</span>
+              <span class="lane-stats" id="quick-stats">0 ops</span>
+            </div>
+            <div class="race-bars" id="race-bars-quick"></div>
+            <div class="race-track"><div class="race-fill" id="race-fill-quick" style="width:0%"></div></div>
+          </div>
+
+          <div class="race-lane lane-merge">
+            <div class="race-lane-header">
+              <span class="lane-name">🟢 MERGE SORT</span>
+              <span class="lane-stats" id="merge-stats">0 ops</span>
+            </div>
+            <div class="race-bars" id="race-bars-merge"></div>
+            <div class="race-track"><div class="race-fill" id="race-fill-merge" style="width:0%"></div></div>
+          </div>
+
+          <div id="race-bet-area" style="margin-top:16px">
+            <div style="font-size:12px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-bottom:10px">🎰 BET ON THE WINNER BEFORE THEY RUN:</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn-game" id="bet-bubble" onclick="placeBet('bubble')"
+                style="background:rgba(255,58,58,0.15);border:1px solid var(--red);color:var(--red);font-size:14px;padding:8px 16px">🔴 BUBBLE</button>
+              <button class="btn-game" id="bet-quick" onclick="placeBet('quick')"
+                style="background:rgba(56,182,255,0.15);border:1px solid var(--blue);color:var(--blue);font-size:14px;padding:8px 16px">🔵 QUICK</button>
+              <button class="btn-game" id="bet-merge" onclick="placeBet('merge')"
+                style="background:rgba(57,255,122,0.15);border:1px solid var(--green);color:var(--green);font-size:14px;padding:8px 16px">🟢 MERGE</button>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <button class="btn-game btn-blue" id="btn-race" onclick="startRace()" disabled>▶ START RACE</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR PANEL -->
+    <div class="sidebar-panel" id="sidebar-panel">
+
+      <!-- ALGO SELECT -->
+      <div>
+        <div class="panel-section-title">CHOOSE ALGORITHM</div>
+        <div class="algo-card" data-algo="bubble" onclick="selectAlgo('bubble')">
+          <span class="selected-badge">● SELECTED</span>
+          <div class="algo-name">BUBBLE SORT</div>
+          <div class="algo-role">The Rookie — Simple & Stable</div>
+          <div class="complexity-row">
+            <span class="cx-badge best">O(n) best</span>
+            <span class="cx-badge worst">O(n²) avg/worst</span>
+            <span class="cx-badge">O(1) space</span>
+          </div>
+        </div>
+        <div class="algo-card" data-algo="quick" onclick="selectAlgo('quick')">
+          <span class="selected-badge">● SELECTED</span>
+          <div class="algo-name">QUICK SORT</div>
+          <div class="algo-role">The Risky Genius — Fast, Unstable</div>
+          <div class="complexity-row">
+            <span class="cx-badge best">O(n log n) avg</span>
+            <span class="cx-badge worst">O(n²) worst</span>
+            <span class="cx-badge">O(log n) space</span>
+          </div>
+        </div>
+        <div class="algo-card" data-algo="merge" onclick="selectAlgo('merge')">
+          <span class="selected-badge">● SELECTED</span>
+          <div class="algo-name">MERGE SORT</div>
+          <div class="algo-role">The Professional — Reliable</div>
+          <div class="complexity-row">
+            <span class="cx-badge best">O(n log n) always</span>
+            <span class="cx-badge worst">O(n) space</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIVOT for pivot mode -->
+      <div id="pivot-panel" style="display:none">
+        <div class="panel-section-title">PIVOT STRATEGY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="pivot-btns">
+          <button class="btn-game btn-ghost" onclick="selectPivot('first')" data-pivot="first" style="font-size:12px;padding:10px 8px">FIRST<br><span style="font-size:9px;color:var(--dim)">Risky on sorted</span></button>
+          <button class="btn-game btn-ghost" onclick="selectPivot('middle')" data-pivot="middle" style="font-size:12px;padding:10px 8px">MIDDLE<br><span style="font-size:9px;color:var(--dim)">Balanced</span></button>
+          <button class="btn-game btn-ghost" onclick="selectPivot('random')" data-pivot="random" style="font-size:12px;padding:10px 8px">RANDOM<br><span style="font-size:9px;color:var(--dim)">Unpredictable</span></button>
+          <button class="btn-game btn-ghost" onclick="selectPivot('median')" data-pivot="median" style="font-size:12px;padding:10px 8px">MEDIAN-3<br><span style="font-size:9px;color:var(--dim)">Optimal</span></button>
+        </div>
+      </div>
+
+      <!-- LIVE STATS -->
+      <div>
+        <div class="panel-section-title">LIVE STATS</div>
+        <div class="info-grid">
+          <div class="info-box">
+            <span class="info-box-val" id="info-comp">—</span>
+            <span class="info-box-label">Comparisons</span>
+          </div>
+          <div class="info-box">
+            <span class="info-box-val" id="info-swap">—</span>
+            <span class="info-box-label">Swaps</span>
+          </div>
+          <div class="info-box">
+            <span class="info-box-val" id="info-time">—</span>
+            <span class="info-box-label">Complexity</span>
+          </div>
+          <div class="info-box">
+            <span class="info-box-val" id="info-mem">—</span>
+            <span class="info-box-label">Space</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLEXITY CHART -->
+      <div>
+        <div class="panel-section-title">VISUAL COMPLEXITY</div>
+        <div class="complexity-chart" id="cx-chart">
+          <div class="cx-bar-wrap">
+            <div class="cx-bar-fill" id="cx-bubble" style="height:80%;background:var(--red);"></div>
+            <span class="cx-bar-label">Bubble</span>
+          </div>
+          <div class="cx-bar-wrap">
+            <div class="cx-bar-fill" id="cx-quick" style="height:40%;background:var(--blue);"></div>
+            <span class="cx-bar-label">Quick</span>
+          </div>
+          <div class="cx-bar-wrap">
+            <div class="cx-bar-fill" id="cx-merge" style="height:40%;background:var(--green);"></div>
+            <span class="cx-bar-label">Merge</span>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--dim);font-family:'Share Tech Mono',monospace;margin-top:6px;text-align:center">Bar height = operations on current dataset size</div>
+      </div>
+
+      <!-- COURT LOG -->
+      <div>
+        <div class="panel-section-title">COURT LOG</div>
+        <div class="court-log" id="court-log">
+          <span class="log-info">› Court is in session.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── END SCREEN ── -->
+<div id="end-screen" class="screen">
+  <span class="end-big-icon" id="end-icon">⚖️</span>
+  <div class="end-title" id="end-title">TRIAL OVER</div>
+  <div class="end-sub" id="end-sub">The court has reached its final verdict.</div>
+  <div class="end-stats">
+    <div class="end-stat">
+      <span class="end-stat-val" id="final-rep">0</span>
+      <span class="end-stat-label">Final Reputation</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-val" id="final-cases">0</span>
+      <span class="end-stat-label">Cases Solved</span>
+    </div>
+    <div class="end-stat">
+      <span class="end-stat-val" id="final-combo">x1</span>
+      <span class="end-stat-label">Best Combo</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+    <button class="btn-game btn-gold" onclick="restartGame()">↺ PLAY AGAIN</button>
+    <button class="btn-game btn-ghost" onclick="goHome()">← MAIN MENU</button>
+  </div>
+</div>
+
+<!-- ── VERDICT POPUP ── -->
+<div class="verdict-popup" id="verdict-popup">
+  <div class="verdict-card">
+    <span class="verdict-icon" id="vp-icon">⚖️</span>
+    <div class="verdict-result" id="vp-result">VERDICT</div>
+    <div class="verdict-explain" id="vp-explain"></div>
+    <div class="score-chips" id="vp-chips"></div>
+    <div class="rep-change" id="vp-rep-change"></div>
+    <button class="btn-game btn-gold" onclick="closeVerdict()" id="vp-next-btn">NEXT CASE →</button>
+  </div>
+</div>
+
+<script>
+// ─────────────── PARTICLES ───────────────
+(function(){
+  const c = document.getElementById('particles');
+  for(let i=0;i<30;i++){
+    const p = document.createElement('div');
+    p.className='particle';
+    const colors=['var(--gold)','var(--blue)','var(--green)','var(--cyan)'];
+    p.style.cssText=`
+      left:${Math.random()*100}%;
+      animation-duration:${6+Math.random()*12}s;
+      animation-delay:${Math.random()*10}s;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      --dx:${(Math.random()-0.5)*200}px;
+    `;
+    c.appendChild(p);
+  }
+})();
+
+// ─────────────── DATA ───────────────
+function range(n){return Array.from({length:n},(_,i)=>i+1);}
+function shuffle(a){let ar=[...a];for(let i=ar.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[ar[i],ar[j]]=[ar[j],ar[i]];}return ar;}
+function nearlySorted(n){let a=range(n);for(let i=0;i<Math.max(1,Math.floor(n*0.15));i++){let j=Math.floor(Math.random()*n),k=Math.floor(Math.random()*n);[a[j],a[k]]=[a[k],a[j]];}return a;}
+function duplicates(n){let base=range(Math.floor(n/2));let arr=[];while(arr.length<n)arr.push(base[Math.floor(Math.random()*base.length)]);return shuffle(arr);}
+
+const CASES_DEF = [
+  {type:'nearly',size:7,best:'bubble',label:'Nearly Sorted Evidence',diff:'EASY'},
+  {type:'random',size:8,best:'merge',label:'Random Evidence',diff:'EASY'},
+  {type:'reversed',size:8,best:'merge',label:'Reverse-Ordered Evidence',diff:'MEDIUM'},
+  {type:'duplicates',size:9,best:'merge',label:'Duplicate Fingerprints',diff:'MEDIUM'},
+  {type:'huge',size:12,best:'merge',label:'Huge CCTV Records',diff:'MEDIUM'},
+  {type:'random',size:10,best:'quick',label:'Random Evidence',diff:'MEDIUM'},
+  {type:'nearly',size:6,best:'bubble',label:'Nearly Sorted Evidence',diff:'HARD'},
+  {type:'reversed',size:12,best:'merge',label:'Reverse-Ordered Evidence',diff:'HARD'},
+  {type:'huge',size:14,best:'quick',label:'Massive Crime Database',diff:'HARD'},
+  {type:'random',size:13,best:'quick',label:'Random Evidence',diff:'HARD'},
+];
+
+const TYPE_TAGS = {
+  random:'tag-random',nearly:'tag-nearly',reversed:'tag-reversed',duplicates:'tag-duplicates',huge:'tag-huge'
+};
+
+// ─────────────── SORTING ALGOS ───────────────
+function bubbleSort(arr){
+  let a=[...arr],comps=0,swaps=0,steps=[];
+  const n=a.length;
+  for(let i=0;i<n-1;i++){
+    for(let j=0;j<n-i-1;j++){
+      comps++;
+      steps.push({arr:[...a],hi:[j,j+1],type:'compare'});
+      if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];swaps++;steps.push({arr:[...a],hi:[j,j+1],type:'swap'});}
+    }
+  }
+  return {arr:a,comps,swaps,steps};
+}
+
+function mergeSort(arr){
+  let a=[...arr],comps=0,swaps=0,steps=[];
+  function mg(ar,l,m,r){
+    let left=ar.slice(l,m+1),right=ar.slice(m+1,r+1),i=0,j=0,k=l;
+    while(i<left.length&&j<right.length){comps++;steps.push({arr:[...ar],hi:[l+i,m+1+j],type:'compare'});if(left[i]<=right[j]){ar[k]=left[i];i++;}else{ar[k]=right[j];j++;swaps++;}k++;}
+    while(i<left.length){ar[k]=left[i];i++;k++;}
+    while(j<right.length){ar[k]=right[j];j++;k++;}
+    steps.push({arr:[...ar],hi:[],type:'merge'});
+  }
+  function ms(ar,l,r){if(l>=r)return;let m=Math.floor((l+r)/2);ms(ar,l,m);ms(ar,m+1,r);mg(ar,l,m,r);}
+  ms(a,0,a.length-1);
+  return {arr:a,comps,swaps,steps};
+}
+
+function quickSort(arr,pivotStrat='middle'){
+  let a=[...arr],comps=0,swaps=0,steps=[],worstCase=false;
+  function getPivot(ar,lo,hi){
+    if(pivotStrat==='first')return lo;
+    if(pivotStrat==='random')return lo+Math.floor(Math.random()*(hi-lo+1));
+    if(pivotStrat==='median'){
+      let m=Math.floor((lo+hi)/2);
+      let v=[[ar[lo],lo],[ar[m],m],[ar[hi],hi]];
+      v.sort((a,b)=>a[0]-b[0]);return v[1][1];
+    }
+    return Math.floor((lo+hi)/2);
+  }
+  function partition(ar,lo,hi){
+    let pi=getPivot(ar,lo,hi);[ar[pi],ar[hi]]=[ar[hi],ar[pi]];swaps++;
+    let pivot=ar[hi],i=lo-1;
+    for(let j=lo;j<hi;j++){comps++;steps.push({arr:[...ar],hi:[j,hi],type:'compare'});if(ar[j]<=pivot){i++;[ar[i],ar[j]]=[ar[j],ar[i]];swaps++;steps.push({arr:[...ar],hi:[i,j],type:'swap'});}}
+    [ar[i+1],ar[hi]]=[ar[hi],ar[i+1]];swaps++;return i+1;
+  }
+  function qs(ar,lo,hi){
+    if(lo>=hi)return;
+    let pi=partition(ar,lo,hi);
+    if((pi===lo||pi===hi)&&hi-lo>3)worstCase=true;
+    qs(ar,lo,pi-1);qs(ar,pi+1,hi);
+  }
+  qs(a,0,a.length-1);
+  return {arr:a,comps,swaps,steps,worstCase};
+}
+
+// ─────────────── STATE ───────────────
+let G = {
+  mode:'trial', rep:100, caseIdx:0, combo:1, bestCombo:1,
+  lives:3, solved:0,
+  currentCase:null, currentData:[],
+  selectedAlgo:null, pivotStrat:'middle',
+  tiles:[], sortCorrect:false,
+  hintUsed:false,
+  timerVal:30, timerInterval:null,
+  raceRunning:false, raceBet:null, raceInterval:null,
+  pendingVerdict:null,
+  hiScore: parseInt(localStorage.getItem('bigoHiScore')||'0'),
+  totalSolved: parseInt(localStorage.getItem('bigoSolved')||'0'),
+};
+
+// ─────────────── HELPERS ───────────────
+function log(msg,cls='log-dim'){
+  const el=document.getElementById('court-log');
+  const d=document.createElement('span');
+  d.className=cls; d.textContent='› '+msg; d.style.display='block';
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+
+function flash(color){
+  const el=document.getElementById('flash');
+  el.className='flash-overlay '+color;
+  el.style.opacity='1';
+  setTimeout(()=>el.style.opacity='0',150);
+}
+
+function showCombo(){
+  if(G.combo<2)return;
+  const el=document.getElementById('combo-display');
+  el.textContent=`COMBO x${G.combo}! 🔥`;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=>{el.classList.remove('show');},2000);
+}
+
+function shake(el){el.style.animation='shake 0.4s ease';el.addEventListener('animationend',()=>el.style.animation='',{once:true});}
+
+// ─────────────── START GAME ───────────────
+function startGame(mode){
+  G.mode=mode; G.rep=100; G.caseIdx=0; G.combo=1; G.bestCombo=1;
+  G.lives=3; G.solved=0;
+
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  document.getElementById('game-hud').style.display='flex';
+
+  document.getElementById('hud-mode').textContent=mode.toUpperCase();
+  document.getElementById('progress-section').style.display=mode==='trial'?'block':'none';
+
+  // Pivot panel
+  document.getElementById('pivot-panel').style.display=mode==='pivot'?'block':'none';
+  if(mode==='pivot'){G.selectedAlgo='quick';}
+
+  // Lives
+  updateLives();
+  updateHUD();
+
+  // Race mode
+  document.getElementById('drag-section').style.display=mode==='race'?'none':'block';
+  document.getElementById('race-section').style.display=mode==='race'?'block':'none';
+
+  loadCase();
+}
+
+function updateHUD(){
+  document.getElementById('hud-case').textContent=G.mode==='trial'?`${G.caseIdx+1}/10`:G.caseIdx+1;
+  document.getElementById('hud-rep').textContent=G.rep;
+  document.getElementById('hud-rep').className='hud-stat-val '+(G.rep>80?'green':G.rep>40?'':'red');
+  document.getElementById('hud-combo').textContent=`x${G.combo}`;
+}
+
+function updateLives(){
+  const el=document.getElementById('lives-display');
+  if(G.mode!=='survival'){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML='';
+  for(let i=0;i<3;i++){
+    const h=document.createElement('span');
+    h.className='life-heart'+(i>=G.lives?' lost':'');
+    h.textContent='❤️';
+    el.appendChild(h);
+  }
+}
+
+// ─────────────── LOAD CASE ───────────────
+function loadCase(){
+  clearInterval(G.timerInterval);
+  G.selectedAlgo=(G.mode==='pivot')?'quick':null;
+  G.sortCorrect=false; G.hintUsed=false; G.raceRunning=false;
+  G.raceBet=null;
+  clearInterval(G.raceInterval);
+
+  let caseDef;
+  if(G.mode==='trial') caseDef=CASES_DEF[Math.min(G.caseIdx,9)];
+  else {
+    const types=['random','nearly','reversed','duplicates','huge'];
+    const t=types[Math.floor(Math.random()*types.length)];
+    const bests={random:'quick',nearly:'bubble',reversed:'merge',duplicates:'merge',huge:'merge'};
+    const size=6+Math.floor(Math.random()*10)+(G.caseIdx>5?4:0);
+    caseDef={type:t,size:Math.min(size,18),best:bests[t],label:t.charAt(0).toUpperCase()+t.slice(1)+' Evidence',diff:'MEDIUM'};
+  }
+
+  G.currentCase=caseDef;
+  const genMap={
+    random:n=>shuffle(range(n)),
+    nearly:nearlySorted,
+    reversed:n=>range(n).reverse(),
+    duplicates,
+    huge:n=>shuffle(range(n))
+  };
+  G.currentData=genMap[caseDef.type](caseDef.size);
+  G.tiles=[...G.currentData];
+
+  // Case banner
+  document.getElementById('case-badge').textContent=`CASE #${String(G.caseIdx+1).padStart(3,'0')}`;
+  document.getElementById('case-title').textContent=caseDef.label.toUpperCase();
+  document.getElementById('case-subtitle').textContent=`${caseDef.size} items to sort — Difficulty: ${caseDef.diff}`;
+  const tag=document.getElementById('case-type-tag');
+  tag.className='case-type-tag '+TYPE_TAGS[caseDef.type];
+  tag.textContent=caseDef.type.toUpperCase();
+
+  // Progress
+  if(G.mode==='trial'){
+    const pct=(G.caseIdx/10)*100;
+    document.getElementById('progress-fill').style.width=pct+'%';
+    document.getElementById('progress-label').textContent=`${G.caseIdx}/10`;
+  }
+
+  // Reset algo cards
+  document.querySelectorAll('.algo-card').forEach(c=>c.classList.remove('selected'));
+  if(G.mode==='pivot'){
+    const c=document.querySelector('[data-algo="quick"]');
+    if(c)c.classList.add('selected');
+  }
+
+  // Reset pivot
+  if(G.mode==='pivot'){
+    document.querySelectorAll('[data-pivot]').forEach(b=>{
+      b.style.borderColor='';b.style.color='';
+    });
+    const mb=document.querySelector('[data-pivot="middle"]');
+    if(mb){mb.style.borderColor='var(--gold)';mb.style.color='var(--gold)';}
+  }
+
+  // Stats
+  document.getElementById('info-comp').textContent='—';
+  document.getElementById('info-swap').textContent='—';
+  document.getElementById('info-time').textContent='—';
+  document.getElementById('info-mem').textContent='—';
+
+  // Complexity chart
+  updateComplexityChart(caseDef.size);
+
+  // Build tiles
+  buildTiles();
+
+  // Race mode
+  if(G.mode==='race'){
+    setupRace();
+  }
+
+  // Check button
+  document.getElementById('btn-check').disabled=true;
+  document.getElementById('sort-feedback').textContent='';
+
+  // Timer for survival
+  if(G.mode==='survival'){
+    startTimer();
+  } else {
+    document.getElementById('timer-ring').style.display='none';
+  }
+
+  updateHUD();
+  log(`Case #${G.caseIdx+1} opened: ${caseDef.label} (${caseDef.size} items)`, 'log-info');
+}
+
+function updateComplexityChart(n){
+  const bubble=n*n;
+  const nlgn=Math.round(n*Math.log2(n));
+  const max=bubble||1;
+  document.getElementById('cx-bubble').style.height=Math.max(5,(bubble/max)*100)+'%';
+  document.getElementById('cx-quick').style.height=Math.max(5,(nlgn/max)*100)+'%';
+  document.getElementById('cx-merge').style.height=Math.max(5,(nlgn/max)*100)+'%';
+}
+
+// ─────────────── DRAG TILES ───────────────
+let dragSrc=null;
+
+function buildTiles(){
+  const container=document.getElementById('sort-tiles');
+  container.innerHTML='';
+  const max=Math.max(...G.tiles,1);
+
+  G.tiles.forEach((val,i)=>{
+    const tile=document.createElement('div');
+    tile.className='sort-tile';
+    tile.draggable=true;
+    tile.dataset.idx=i;
+
+    const bar=document.createElement('div');
+    bar.className='tile-bar';
+    bar.style.height=Math.max(10,(val/max)*100)+'%';
+
+    const colors=['var(--blue)','var(--purple)','var(--cyan)','var(--green)'];
+    bar.style.setProperty('--tile-color', colors[i%colors.length]);
+
+    const label=document.createElement('div');
+    label.className='tile-val';
+    label.textContent=val;
+
+    tile.appendChild(bar);
+    tile.appendChild(label);
+
+    tile.addEventListener('dragstart',e=>{
+      dragSrc=i;
+      tile.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    tile.addEventListener('dragend',()=>tile.classList.remove('dragging'));
+    tile.addEventListener('dragover',e=>{e.preventDefault();tile.classList.add('drag-over');});
+    tile.addEventListener('dragleave',()=>tile.classList.remove('drag-over'));
+    tile.addEventListener('drop',e=>{
+      e.preventDefault();
+      tile.classList.remove('drag-over');
+      if(dragSrc===null||dragSrc===i)return;
+      [G.tiles[dragSrc],G.tiles[i]]=[G.tiles[i],G.tiles[dragSrc]];
+      buildTiles();
+      document.getElementById('btn-check').disabled=false;
+      document.getElementById('sort-feedback').textContent='';
+    });
+
+    container.appendChild(tile);
+  });
+}
+
+function shuffleTiles(){
+  G.tiles=shuffle(G.tiles);
+  buildTiles();
+  document.getElementById('sort-feedback').textContent='';
+  document.getElementById('btn-check').disabled=false;
+}
+
+function hintSort(){
+  if(G.hintUsed)return;
+  G.hintUsed=true;
+  // Reveal one correct position
+  const sorted=[...G.currentData].sort((a,b)=>a-b);
+  // Find first wrong tile
+  for(let i=0;i<G.tiles.length;i++){
+    if(G.tiles[i]!==sorted[i]){
+      // Find where sorted[i] is in tiles
+      let fi=G.tiles.indexOf(sorted[i]);
+      if(fi>-1){[G.tiles[i],G.tiles[fi]]=[G.tiles[fi],G.tiles[i]];break;}
+    }
+  }
+  buildTiles();
+  G.rep=Math.max(0,G.rep-5);
+  updateHUD();
+  log('Hint used: one tile corrected. -5 pts','log-bad');
+  document.getElementById('btn-hint').disabled=true;
+  document.getElementById('btn-hint').style.opacity='0.3';
+}
+
+function checkSort(){
+  if(!G.selectedAlgo&&G.mode!=='race'){
+    shake(document.querySelector('.algo-card'));
+    document.getElementById('sort-feedback').textContent='⚠ Select an algorithm first!';
+    document.getElementById('sort-feedback').style.color='var(--red)';
+    return;
+  }
+
+  const sorted=[...G.currentData].sort((a,b)=>a-b);
+  const correct=G.tiles.every((v,i)=>v===sorted[i]);
+
+  // Highlight tiles
+  const tiles=document.querySelectorAll('.sort-tile');
+  tiles.forEach((t,i)=>{
+    t.classList.remove('correct','wrong-pos');
+    if(G.tiles[i]===sorted[i]) t.classList.add('correct');
+    else t.classList.add('wrong-pos');
+  });
+
+  if(correct){
+    G.sortCorrect=true;
+    flash('green');
+    tiles.forEach((t,i)=>{setTimeout(()=>{t.classList.add('bounce');},i*50);});
+    document.getElementById('sort-feedback').textContent='✓ Perfectly sorted!';
+    document.getElementById('sort-feedback').style.color='var(--green)';
+    log('Array sorted correctly!','log-good');
+    setTimeout(()=>evaluateRound(),600);
+  } else {
+    flash('red');
+    shake(document.getElementById('sort-tiles'));
+    const wrong=G.tiles.filter((v,i)=>v!==sorted[i]).length;
+    document.getElementById('sort-feedback').textContent=`✗ ${wrong} tile${wrong>1?'s':''} out of place. Keep trying!`;
+    document.getElementById('sort-feedback').style.color='var(--red)';
+    log(`${wrong} tiles still out of place.`,'log-bad');
+  }
+}
+
+// ─────────────── ALGO SELECT ───────────────
+function selectAlgo(algo){
+  G.selectedAlgo=algo;
+  document.querySelectorAll('.algo-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`[data-algo="${algo}"]`).classList.add('selected');
+
+  // Compute stats immediately
+  const res = algo==='bubble' ? bubbleSort(G.currentData)
+             : algo==='quick' ? quickSort(G.currentData,G.pivotStrat)
+             : mergeSort(G.currentData);
+
+  document.getElementById('info-comp').textContent=res.comps;
+  document.getElementById('info-swap').textContent=res.swaps;
+  const n=G.currentData.length;
+  document.getElementById('info-time').textContent=algo==='bubble'?'O(n²)':`O(n·log n)`;
+  document.getElementById('info-mem').textContent=algo==='merge'?'O(n)':'O(log n)';
+
+  log(`Selected ${algo} sort — ${res.comps} comparisons, ${res.swaps} swaps`,'log-info');
+
+  if(G.sortCorrect) evaluateRound();
+}
+
+function selectPivot(strat){
+  G.pivotStrat=strat;
+  document.querySelectorAll('[data-pivot]').forEach(b=>{b.style.borderColor='';b.style.color='';});
+  const b=document.querySelector(`[data-pivot="${strat}"]`);
+  if(b){b.style.borderColor='var(--gold)';b.style.color='var(--gold)';}
+  log(`Pivot strategy: ${strat}`,'log-info');
+}
+
+// ─────────────── EVALUATE ROUND ───────────────
+function evaluateRound(){
+  if(!G.selectedAlgo) return;
+  clearInterval(G.timerInterval);
+
+  const c=G.currentCase;
+  const algo=G.selectedAlgo;
+  const n=G.currentData.length;
+
+  const algoCorrect=algo===c.best;
+  let delta=0;
+  const chips=[];
+  let penalties=[];
+
+  // Sort score
+  if(G.sortCorrect){
+    delta+=30;
+    chips.push({text:'✓ Array sorted: +30',cls:'chip-pos'});
+  }
+
+  // Algo score
+  if(algoCorrect){
+    delta+=50;
+    chips.push({text:'✓ Best algorithm: +50',cls:'chip-pos'});
+  } else {
+    delta-=20;
+    chips.push({text:`✗ Wrong algorithm: -20 (best was ${c.best})`,cls:'chip-neg'});
+  }
+
+  // Combo multiplier
+  if(algoCorrect&&G.sortCorrect){
+    G.combo++;
+    if(G.combo>G.bestCombo) G.bestCombo=G.combo;
+    const bonus=Math.min((G.combo-1)*10,30);
+    if(bonus>0){delta+=bonus;chips.push({text:`🔥 Combo x${G.combo}: +${bonus}`,cls:'chip-pos'});}
+    showCombo();
+  } else {
+    G.combo=1;
+  }
+
+  // Hint penalty
+  if(G.hintUsed){chips.push({text:'💡 Hint used: -5',cls:'chip-neg'});}
+
+  // Penalties
+  const qResult=quickSort(G.currentData,G.pivotStrat);
+  if(algo==='quick'&&qResult.worstCase){
+    delta-=15;
+    chips.push({text:'⚠ QuickSort worst-case: -15',cls:'chip-neg'});
+    penalties.push('QuickSort hit near-worst-case O(n²)!');
+  }
+  if(algo==='bubble'&&n>12){
+    delta-=20;
+    chips.push({text:'⚠ Bubble on huge data: -20',cls:'chip-neg'});
+    penalties.push('Bubble Sort on large dataset is inefficient!');
+  }
+
+  // Apply
+  delta=Math.round(delta*1);
+  G.rep=Math.max(0,G.rep+delta);
+  G.solved++;
+  G.caseIdx++;
+
+  if(G.mode==='survival'&&!algoCorrect){
+    G.lives--;
+    updateLives();
+  }
+
+  G.pendingVerdict={delta,chips,algoCorrect,penalties};
+  showVerdict(delta,chips,algoCorrect,penalties);
+  updateHUD();
+
+  // Save hi score
+  if(G.rep>G.hiScore){G.hiScore=G.rep;localStorage.setItem('bigoHiScore',G.rep);}
+  G.totalSolved++;
+  localStorage.setItem('bigoSolved',G.totalSolved);
+}
+
+// ─────────────── VERDICT POPUP ───────────────
+function showVerdict(delta,chips,win,penalties){
+  const popup=document.getElementById('verdict-popup');
+  document.getElementById('vp-icon').textContent=win&&delta>0?'🏆':delta<0?'💀':'⚖️';
+
+  const result=document.getElementById('vp-result');
+  if(win&&delta>0){result.textContent='UPHELD';result.className='verdict-result win';}
+  else if(delta<0){result.textContent='OVERTURNED';result.className='verdict-result lose';}
+  else{result.textContent='PARTIAL';result.className='verdict-result ok';}
+
+  let explain=`Algorithm: ${G.selectedAlgo.toUpperCase()}. Best choice was: ${G.currentCase.best.toUpperCase()}.`;
+  if(penalties.length) explain+='\n'+penalties.join(' ');
+  document.getElementById('vp-explain').textContent=explain;
+
+  const chipsEl=document.getElementById('vp-chips');
+  chipsEl.innerHTML=chips.map(c=>`<span class="score-chip ${c.cls}">${c.text}</span>`).join('');
+
+  const rc=document.getElementById('vp-rep-change');
+  rc.textContent=(delta>=0?'+':'')+delta+' REP';
+  rc.style.color=delta>=0?'var(--green)':'var(--red)';
+
+  // Next button text
+  const isEnd=(G.mode==='trial'&&G.caseIdx>=10)||(G.mode==='survival'&&G.lives<=0)||G.rep<=0;
+  document.getElementById('vp-next-btn').textContent=isEnd?'VIEW RESULTS':'NEXT CASE →';
+
+  popup.classList.add('show');
+}
+
+function closeVerdict(){
+  document.getElementById('verdict-popup').classList.remove('show');
+
+  const isEnd=(G.mode==='trial'&&G.caseIdx>=10)||(G.mode==='survival'&&G.lives<=0)||G.rep<=0;
+  if(isEnd) showEnd();
+  else loadCase();
+}
+
+// ─────────────── TIMER ───────────────
+function startTimer(){
+  G.timerVal=30;
+  document.getElementById('timer-ring').style.display='flex';
+  document.getElementById('timer-val').textContent=G.timerVal;
+  document.getElementById('timer-val').className='timer-val';
+  G.timerInterval=setInterval(()=>{
+    G.timerVal--;
+    document.getElementById('timer-val').textContent=G.timerVal;
+    if(G.timerVal<=10) document.getElementById('timer-val').className='timer-val urgent';
+    if(G.timerVal<=0){
+      clearInterval(G.timerInterval);
+      G.lives--;
+      updateLives();
+      G.rep=Math.max(0,G.rep-30);
+      log('⏰ Time out! -30 rep, -1 life','log-bad');
+      G.caseIdx++;
+      if(G.lives<=0||G.rep<=0) showEnd();
+      else loadCase();
+    }
+  },1000);
+}
+
+// ─────────────── RACE MODE ───────────────
+function setupRace(){
+  G.raceBet=null;
+  document.querySelectorAll('[id^="bet-"]').forEach(b=>{b.style.boxShadow='';});
+  document.getElementById('btn-race').disabled=true;
+  document.getElementById('race-instruction').textContent='Place your bet first, then start the race!';
+
+  ['bubble','quick','merge'].forEach(a=>{
+    document.getElementById(`race-fill-${a}`).style.width='0%';
+    document.getElementById(`${a}-stats`).textContent='0 ops';
+    initRaceBars(a);
+  });
+}
+
+function initRaceBars(algo){
+  const el=document.getElementById(`race-bars-${algo}`);
+  el.innerHTML='';
+  const colors={bubble:'var(--red)',quick:'var(--blue)',merge:'var(--green)'};
+  const max=Math.max(...G.currentData,1);
+  G.currentData.forEach(v=>{
+    const b=document.createElement('div');
+    b.className='race-bar';
+    b.style.height=Math.max(5,(v/max)*100)+'%';
+    b.style.background=colors[algo];
+    b.style.opacity='0.7';
+    el.appendChild(b);
+  });
+}
+
+function placeBet(algo){
+  G.raceBet=algo;
+  document.querySelectorAll('[id^="bet-"]').forEach(b=>b.style.boxShadow='');
+  document.getElementById(`bet-${algo}`).style.boxShadow=`0 0 16px currentColor`;
+  document.getElementById('btn-race').disabled=false;
+  log(`Bet placed on ${algo} sort to win!`,'log-info');
+}
+
+function startRace(){
+  if(G.raceRunning) return;
+  G.raceRunning=true;
+  document.getElementById('btn-race').disabled=true;
+  document.getElementById('race-bet-area').style.display='none';
+
+  const bR=bubbleSort(G.currentData);
+  const qR=quickSort(G.currentData,G.pivotStrat);
+  const mR=mergeSort(G.currentData);
+
+  const maxSteps=Math.max(bR.steps.length,qR.steps.length,mR.steps.length)||1;
+  const results={bubble:bR,quick:qR,merge:mR};
+  let frame=0;
+
+  function tick(){
+    frame++;
+    ['bubble','quick','merge'].forEach(algo=>{
+      const res=results[algo];
+      const pct=Math.min(100,(frame/res.steps.length)*100);
+      document.getElementById(`race-fill-${algo}`).style.width=pct+'%';
+
+      const stepIdx=Math.min(frame,res.steps.length-1);
+      if(res.steps[stepIdx]){
+        const step=res.steps[stepIdx];
+        const el=document.getElementById(`race-bars-${algo}`);
+        const bars=el.querySelectorAll('.race-bar');
+        const max=Math.max(...step.arr,1);
+        const colors={bubble:'var(--red)',quick:'var(--blue)',merge:'var(--green)'};
+        step.arr.forEach((v,i)=>{
+          if(bars[i]){
+            bars[i].style.height=Math.max(5,(v/max)*100)+'%';
+            bars[i].style.background=step.hi.includes(i)?'var(--gold)':colors[algo];
+          }
+        });
+      }
+      const ops=Math.min(frame,res.comps+res.swaps);
+      document.getElementById(`${algo}-stats`).textContent=`${ops} ops`;
+    });
+
+    if(frame>=maxSteps){
+      clearInterval(G.raceInterval);
+      finishRace(bR,qR,mR);
+    }
+  }
+
+  G.raceInterval=setInterval(tick,30);
+}
+
+function finishRace(bR,qR,mR){
+  const counts={bubble:bR.comps+bR.swaps,quick:qR.comps+qR.swaps,merge:mR.comps+mR.swaps};
+  const winner=Object.keys(counts).reduce((a,b)=>counts[a]<counts[b]?a:b);
+  const betCorrect=G.raceBet===winner;
+
+  let delta=betCorrect?40:-15;
+  G.rep=Math.max(0,G.rep+delta);
+  G.caseIdx++;
+  G.solved++;
+
+  const chips=[
+    {text:`Winner: ${winner.toUpperCase()} Sort`,cls:'chip-neutral'},
+    betCorrect?{text:`✓ Correct bet: +40`,cls:'chip-pos'}:{text:`✗ Wrong bet: -15`,cls:'chip-neg'},
+  ];
+
+  log(`Race winner: ${winner} (${counts[winner]} ops). You bet ${G.raceBet}.`,betCorrect?'log-good':'log-bad');
+  showVerdict(delta,chips,betCorrect,[]);
+  updateHUD();
+
+  document.getElementById('race-bet-area').style.display='block';
+  G.raceRunning=false;
+}
+
+// ─────────────── END ───────────────
+function showEnd(){
+  clearInterval(G.timerInterval);
+  document.getElementById('verdict-popup').classList.remove('show');
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('game-hud').style.display='none';
+  document.getElementById('end-screen').classList.add('active');
+
+  const win=G.mode==='trial'&&G.rep>=200;
+  const lose=G.rep<=0||(G.mode==='survival'&&G.lives<=0);
+
+  if(win){
+    document.getElementById('end-icon').textContent='👑';
+    document.getElementById('end-title').textContent='CHIEF JUSTICE';
+    document.getElementById('end-title').style.color='var(--gold)';
+    document.getElementById('end-sub').textContent='Your mastery of algorithmic complexity is unmatched. The Big-O Court bows before you.';
+  } else if(lose){
+    document.getElementById('end-icon').textContent='⚰️';
+    document.getElementById('end-title').textContent='DISMISSED';
+    document.getElementById('end-title').style.color='var(--red)';
+    document.getElementById('end-sub').textContent='Your reputation has crumbled. The court has removed you from the bench. Study your complexities.';
+  } else {
+    document.getElementById('end-icon').textContent='⚖️';
+    document.getElementById('end-title').textContent='TRIAL COMPLETE';
+    document.getElementById('end-title').style.color='var(--blue)';
+    document.getElementById('end-sub').textContent=`You completed ${G.solved} cases but didn't reach Chief Justice status. Score ≥200 to claim the throne.`;
+  }
+
+  document.getElementById('final-rep').textContent=G.rep;
+  document.getElementById('final-cases').textContent=G.solved;
+  document.getElementById('final-combo').textContent=`x${G.bestCombo}`;
+}
+
+function goHome(){
+  clearInterval(G.timerInterval);
+  clearInterval(G.raceInterval);
+  document.getElementById('verdict-popup').classList.remove('show');
+  ['game-screen','end-screen'].forEach(id=>{document.getElementById(id).classList.remove('active');});
+  document.getElementById('title-screen').classList.add('active');
+  document.getElementById('game-hud').style.display='none';
+  document.getElementById('hiscore-display').textContent=G.hiScore;
+  document.getElementById('solved-display').textContent=G.totalSolved;
+}
+
+function restartGame(){ goHome(); setTimeout(()=>startGame(G.mode),100); }
+
+// Init hi-score display
+document.getElementById('hiscore-display').textContent=G.hiScore;
+document.getElementById('solved-display').textContent=G.totalSolved;
+</script>
+</body>
+</html>

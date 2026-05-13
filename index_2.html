@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SortQuest — Data Structures Gaming Portal</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #2a2a3a;
+      --accent: #00f5a0;
+      --accent2: #f5a000;
+      --accent3: #a000f5;
+      --text: #f0f0f0;
+      --muted: #888;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 245, 160, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 160, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 245, 160, 0.07) 0%, transparent 70%);
+      top: -200px;
+      left: -200px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glow2 {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(160, 0, 245, 0.07) 0%, transparent 70%);
+      bottom: -150px;
+      right: -150px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 3rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+
+    .logo span {
+      color: var(--text);
+    }
+
+    .nav-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 2px;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 14px;
+      border-radius: 2px;
+      margin-bottom: 2rem;
+      letter-spacing: 0.15em;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    h1 {
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--accent);
+      position: relative;
+    }
+
+    .hero-sub {
+      margin-top: 1.5rem;
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin-inline: auto;
+      line-height: 1.7;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .games-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+
+    .game-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2.5rem;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .game-card:nth-child(1) {
+      animation-delay: 0.3s;
+    }
+
+    .game-card:nth-child(2) {
+      animation-delay: 0.4s;
+    }
+
+    .game-card:nth-child(3) {
+      animation-delay: 0.5s;
+    }
+
+    .game-card:nth-child(4) {
+      animation-delay: 0.6s;
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .game-card.bubble::before {
+      background: linear-gradient(135deg, rgba(0, 245, 160, 0.05) 0%, transparent 60%);
+    }
+
+    .game-card.quick::before {
+      background: linear-gradient(135deg, rgba(245, 160, 0, 0.05) 0%, transparent 60%);
+    }
+
+    .game-card.bigo::before {
+      background: linear-gradient(135deg, rgba(245, 200, 66, 0.05) 0%, transparent 60%);
+    }
+
+    .game-card.queue::before {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 60%);
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .game-card.bubble:hover {
+      border-color: var(--accent);
+    }
+
+    .game-card.quick:hover {
+      border-color: var(--accent2);
+    }
+
+    .game-card.bigo:hover {
+      border-color: #f5c842;
+    }
+
+    .game-card.queue:hover {
+      border-color: var(--accent3);
+    }
+
+    .game-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-icon {
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      height: 48px;
+      margin-bottom: 1.5rem;
+    }
+
+    .bar {
+      width: 10px;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .game-card.bubble .bar {
+      background: var(--accent);
+    }
+
+    .game-card.quick .bar {
+      background: var(--accent2);
+    }
+
+    .game-card.bigo .bar {
+      background: #f5c842;
+    }
+
+    .game-card.queue .bar {
+      background: var(--accent3);
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .game-card.bubble .card-title {
+      color: var(--accent);
+    }
+
+    .game-card.quick .card-title {
+      color: var(--accent2);
+    }
+
+    .game-card.bigo .card-title {
+      color: #f5c842;
+    }
+
+    .game-card.queue .card-title {
+      color: var(--accent3);
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .card-complexity {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .complexity-item {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+    }
+
+    .complexity-label {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .game-card.bubble .complexity-value {
+      color: var(--accent);
+    }
+
+    .game-card.quick .complexity-value {
+      color: var(--accent2);
+    }
+
+    .game-card.bigo .complexity-value {
+      color: #f5c842;
+    }
+
+    .game-card.queue .complexity-value {
+      color: var(--accent3);
+    }
+
+    .card-cta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+
+    .game-card.bubble .card-cta {
+      color: var(--accent);
+    }
+
+    .game-card.quick .card-cta {
+      color: var(--accent2);
+    }
+
+    .game-card.bigo .card-cta {
+      color: #f5c842;
+    }
+
+    .game-card.queue .card-cta {
+      color: var(--accent3);
+    }
+
+    .arrow {
+      transition: transform 0.2s;
+    }
+
+    .game-card:hover .arrow {
+      transform: translateX(6px);
+    }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 3rem;
+      border-top: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="grid-bg"></div>
+  <div class="glow"></div>
+  <div class="glow2"></div>
+
+  <nav>
+    <div class="logo">SORT<span>QUEST</span></div>
+    <div class="nav-tag">DATA STRUCTURES PORTAL</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-tag">INTERACTIVE LEARNING</div>
+    <h1>Learn by<br><em>Sorting</em></h1>
+    <p class="hero-sub">Master data structure algorithms through hands-on gameplay. Step through each comparison and
+      swap yourself.</p>
+  </section>
+
+
+
+  <div class="games-grid">
+
+    <a href="Orchestra-sort.html" class="game-card bubble">
+      <div class="card-num">GAME 01</div>
+      <div class="card-icon">
+        <div class="bar" style="height:20px"></div>
+        <div class="bar" style="height:38px"></div>
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:44px"></div>
+        <div class="bar" style="height:28px"></div>
+        <div class="bar" style="height:10px"></div>
+        <div class="bar" style="height:32px"></div>
+      </div>
+      <div class="card-title">Orchestra Sort</div>
+      <p class="card-desc">Repeatedly compare and swap adjacent elements. Watch the largest values bubble to the top
+        with each pass.</p>
+      <div class="card-complexity">
+        <div class="complexity-item">
+          <span class="complexity-label">TIME</span>
+          <span class="complexity-value">O(n²)</span>
+        </div>
+        <div class="complexity-item">
+          <span class="complexity-label">SPACE</span>
+          <span class="complexity-value">O(1)</span>
+        </div>
+        <div class="complexity-item">
+          <span class="complexity-label">STABLE</span>
+          <span class="complexity-value">YES</span>
+        </div>
+      </div>
+      <div class="card-cta">PLAY NOW <span class="arrow">→</span></div>
+    </a>
+
+
+
+    <a href="big-o-trial-v2.html" class="game-card bigo">
+      <div class="card-num">GAME 03</div>
+      <div class="card-icon">
+        <div class="bar" style="height:8px"></div>
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:22px"></div>
+        <div class="bar" style="height:32px"></div>
+        <div class="bar" style="height:44px"></div>
+        <div class="bar" style="height:40px"></div>
+        <div class="bar" style="height:48px"></div>
+      </div>
+      <div class="card-title">The Big-O Trial</div>
+      <p class="card-desc">Put your complexity knowledge on trial. Identify time and space complexities before the court
+        rules against you.</p>
+      <div class="card-complexity">
+        <div class="complexity-item">
+          <span class="complexity-label">TOPIC</span>
+          <span class="complexity-value">COMPLEXITY</span>
+        </div>
+        <div class="complexity-item">
+          <span class="complexity-label">FORMAT</span>
+          <span class="complexity-value">QUIZ</span>
+        </div>
+      </div>
+      <div class="card-cta">PLAY NOW <span class="arrow">→</span></div>
+    </a>
+
+    <a href="queue-cafe (2).html" class="game-card queue">
+      <div class="card-num">GAME 03</div>
+      <div class="card-icon">
+        <div class="bar" style="height:48px"></div>
+        <div class="bar" style="height:48px"></div>
+        <div class="bar" style="height:48px"></div>
+        <div class="bar" style="height:32px"></div>
+        <div class="bar" style="height:32px"></div>
+        <div class="bar" style="height:16px"></div>
+        <div class="bar" style="height:16px"></div>
+      </div>
+      <div class="card-title">Queue Cafe</div>
+      <p class="card-desc">Run a busy café using queue data structure operations. Enqueue customers, serve in order, and
+        handle VIP priorities.</p>
+      <div class="card-complexity">
+        <div class="complexity-item">
+          <span class="complexity-label">TOPIC</span>
+          <span class="complexity-value">QUEUES</span>
+        </div>
+        <div class="complexity-item">
+          <span class="complexity-label">ENQUEUE</span>
+          <span class="complexity-value">O(1)</span>
+        </div>
+        <div class="complexity-item">
+          <span class="complexity-label">DEQUEUE</span>
+          <span class="complexity-value">O(1)</span>
+        </div>
+      </div>
+      <div class="card-cta">PLAY NOW <span class="arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <footer class="footer">
+    SORTQUEST &mdash; DATA STRUCTURES GAMING PORTAL &mdash; BUILT WITH HTML / CSS / JS
+  </footer>
+
+</body>
+
+</html>
