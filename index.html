@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SortQuest - Algorithm Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00f5a0;
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 3rem;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .game-card {
+            background: rgba(18, 18, 26, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-decoration: none;
+            transition: transform 0.3s, border-color 0.3s;
+            display: block;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+        }
+        .game-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .game-card p {
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .card1 { border-top: 3px solid #00f5a0; }
+        .card1 h2 { color: #00f5a0; }
+        .card2 { border-top: 3px solid #f5c842; }
+        .card2 h2 { color: #f5c842; }
+        .card3 { border-top: 3px solid #a855f7; }
+        .card3 h2 { color: #a855f7; }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #666;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 SortQuest</h1>
+        <p class="subtitle">Master Algorithms Through Interactive Games</p>
+        
+        <div class="games-grid">
+            <a href="orchestra-sort.html" class="game-card card1">
+                <h2>🎻 Orchestra Sort</h2>
+                <p>Learn Bubble Sort & Quick Sort by conducting musicians! Compare, swap, and partition your way to harmony.</p>
+                <span class="badge" style="background: #00f5a020; color: #00f5a0;">Sorting Algorithms</span>
+            </a>
+            
+            <a href="big-o-trial-v2.html" class="game-card card2">
+                <h2>⚖️ The Big-O Trial</h2>
+                <p>Put your complexity knowledge on trial. Sort evidence and choose the right algorithm before time runs out!</p>
+                <span class="badge" style="background: #f5c84220; color: #f5c842;">Time Complexity</span>
+            </a>
+            
+            <a href="queue-cafe.html" class="game-card card3">
+                <h2>☕ Queue Cafe</h2>
+                <p>Run a busy cafe using Queue data structures. Serve customers in FIFO order with VIP priority!</p>
+                <span class="badge" style="background: #a855f720; color: #a855f7;">Queue / FIFO</span>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>⬇️ Click any game to start learning! ⬇️</p>
+        </div>
+    </div>
+</body>
+</html>
